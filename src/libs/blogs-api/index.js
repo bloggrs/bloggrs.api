@@ -43,8 +43,7 @@ app.use(allowCrossDomain);
 const BlogFields = {
   name: yup.string(),
   description: yup.string(),
-  logo_url: yup.string(),
-  BlogCategoryId: id,
+  BlogCategory: yup.object(),
 };
 const BlogFieldKeys = Object.keys(BlogFields);
 

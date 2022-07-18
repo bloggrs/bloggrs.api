@@ -27,14 +27,18 @@ module.exports = {
       take: pageSize,
     });
   },
-  createBlog: async ({ name, description, logo_url, UserId, BlogCategoryId }) =>
+  createBlog: async ({ name, description, logo_url, UserId, BlogCategory, BlogThemeId }) =>
     await prisma.blogs.create({
       data: {
         name,
         description,
-        logo_url,
+        logo_url: "https://i.ytimg.com/an_webp/elLIDHqNK2o/mqdefault_6s.webp?du=3000&sqp=CLyH15YG&rs=AOn4CLCAifddISyh0nH_l1msu6K4PQAbbA",
         UserId, 
-        BlogCategoryId,
+        BlogCategoryId: BlogCategory.id || (
+          await prisma.blogcategories.findFirst({ where: BlogCategory }) || 
+          await prisma.blogcategories.create({ data: BlogCategory })
+        ).id,
+        BlogThemeId
       }
     }),
   updateBlog: async ({ pk, data }) => {

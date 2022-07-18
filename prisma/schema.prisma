@@ -15,6 +15,16 @@ model blogcategories {
   blogs     blogs[]
 }
 
+model blogthemes {
+  id        Int      @id @default(autoincrement())
+  name             String   @unique(map: "name") @db.VarChar(255)
+  description      String   @db.VarChar(255)
+  image_url        String   @db.VarChar(255)
+  createdAt DateTime? @db.DateTime(0) @default(now())
+  updatedAt DateTime? @db.DateTime(0) @default(now())
+  blogs     blogs[]
+}
+
 model blogcontacts {
   id         Int      @id @default(autoincrement())
   first_name String   @db.VarChar(255)
@@ -50,7 +60,9 @@ model blogs {
   updatedAt          DateTime?             @db.DateTime(0) @default(now())
   UserId             Int
   BlogCategoryId     Int
+  BlogThemeId     Int
   blogcategories     blogcategories       @relation(fields: [BlogCategoryId], references: [id], onDelete: NoAction, map: "blogs_ibfk_2")
+  blogthemes     blogthemes       @relation(fields: [BlogThemeId], references: [id], onDelete: NoAction, map: "blogs_ibfk_3")
   users              users                @relation(fields: [UserId], references: [id], onDelete: NoAction, map: "blogs_ibfk_1")
   blogcontacts       blogcontacts[]
   blogpostcategories blogpostcategories[]
@@ -61,6 +73,7 @@ model blogs {
   publickeys         publickeys[]
   teammembers        teammembers[]
 
+  @@index([BlogThemeId], map: "BlogThemeId")
   @@index([BlogCategoryId], map: "BlogCategoryId")
   @@index([UserId], map: "UserId")
 }
