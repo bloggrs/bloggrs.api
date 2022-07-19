@@ -9,10 +9,10 @@ module.exports = {
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await prisma.postcategories.findAll({
+        return await prisma.postcategories.findMany({
             where,
-            offset: (page - 1) & page,
-            limit: pageSize,
+            skip: (page - 1) & page,
+            take: pageSize,
         })
     },
     createPostCategory: async ({ 

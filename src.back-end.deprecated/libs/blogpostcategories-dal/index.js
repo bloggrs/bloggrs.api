@@ -8,7 +8,7 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
-    return await BlogPostCategory.findAll({
+    return await BlogPostCategory.findMany({
       where,
       offset: (page - 1) & page,
       limit: pageSize,

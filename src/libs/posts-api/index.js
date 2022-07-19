@@ -3,7 +3,12 @@
 const express = require("express");
 const app = module.exports = express();
 
-const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
+const { 
+    allowCrossDomain, validateRequest, 
+    jwtRequired, passUserFromJWT, 
+    adminRequired, jwtNotRequired,
+    passUserOrCreateGuestFromJWT 
+} = require("../../middlewares");
 
 const { findAll, createPost, updatePost, deletePost, findByPkOr404 } = require("./posts-dal");
 const { ErrorHandler } = require("../../utils/error");
@@ -16,11 +21,11 @@ yup.addMethod(yup.array, 'oneOfSchemas', function(schemas) {
     return this.test(
       'one-of-schemas',
       'Not all items in ${path} match one of the allowed schemas',
-      items => items.every(item => {
+      items => !schemas.length ? true : items.every(item => {
         return schemas.some(schema => schema.isValidSync(item, {strict: true}))
       })
     )
-  })
+})
 
 app.use(allowCrossDomain)
 
@@ -29,27 +34,27 @@ const PostFields = {
     slug: yup.string(),
     html_content: yup.string(),
     BlogId: id,
-    categories: yup.array().oneOfSchemas([
-        yup.object().shape({
-            title: yup.string().required()
-        }),
-        yup.object().shape({
-            slug: yup.string().required()
-        }),
-        yup.object().shape({
-            id: id.required()
-        }),
-    ])
+    // categories: yup.array().oneOfSchemas([
+    //     yup.object().shape({
+    //         title: yup.string().required()
+    //     }),
+    //     yup.object().shape({
+    //         slug: yup.string().required()
+    //     }),
+    //     yup.object().shape({
+    //         id: id.required()
+    //     }),
+    // ])
     // status: yup.string().default("")
 }
 const PostFieldKeys = Object.keys(PostFields)
 
 app.get("/posts", [
-    // jwtRequired, passUserFromJWT,
+    jwtNotRequired, passUserOrCreateGuestFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
             page: yup.number().integer().positive().default(1),
-            pageSize: yup.number().integer().positive().default(10),
+            pageSize: yup.number().integer().positive().default(3),
             status: yup.string(),
             query: yup.string(),
             categories: yup.string()
@@ -57,7 +62,10 @@ app.get("/posts", [
     }))
 ], async (req,res) => {
     let { page, pageSize } = req.query;
-    let posts = await findAll(req.query); 
+    let posts = await findAll({
+        ...req.query,
+        UserId: req.user.id
+    }); 
     return res.json({
         message: "success",
         code: 200,

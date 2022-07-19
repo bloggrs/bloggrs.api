@@ -1,7 +1,7 @@
 const S3_BUCKET = require("./index");
 const { v1: uuid } = require('uuid')
 
-module.exports = async (file) => {
+module.exports = async (file, callback) => {
     let key = `${uuid()}-${file.originalname}`;
     let data = {
         Bucket: process.env.S3_BUCKET, //"uxstories",
@@ -11,8 +11,10 @@ module.exports = async (file) => {
         ContentEncoding: file.encoding,
         ACL: "public-read"
     };
-    await S3_BUCKET.upload(data, () => { })
-    if (process.env.DEBUG)
-        console.log(`https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`)
-    return `https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`
+    await S3_BUCKET.upload(data, () => { 
+        if (process.env.DEBUG)
+            console.log(`https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`)
+        const url = `https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`
+        callback(url);
+    })
 }

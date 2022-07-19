@@ -9,7 +9,7 @@ const { ErrorHandler } = require("../../utils/error");
 
 module.exports = {
     findByPk: async pk => await User.findByPkOrError(pk),
-    findAll: async () => await User.findAll(),
+    findAll: async () => await User.findMany(),
     deleteUser: async pk => {
         let user = await User.findByPkOrError(pk)
         user.destroy();

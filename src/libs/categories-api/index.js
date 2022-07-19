@@ -31,6 +31,7 @@ const CategoryFields = {
 };
 const CategoryFieldKeys = Object.keys(CategoryFields);
 
+const prisma = require("../../prisma");
 app.get(
   "/categories",
   [
@@ -38,8 +39,8 @@ app.get(
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(10),
+          page: yup.string().default("1"),
+          pageSize: yup.string().default("10"),
           status: yup.string(),
           query: yup.string(),
           BlogId: param_id,
@@ -48,11 +49,15 @@ app.get(
     ),
   ],
   async (req, res) => {
+    const { BlogId } = req.query;
     let categories = await findAll(req.query);
+    let _meta = {
+      count: await prisma.categories.count(BlogId ? { BlogId } : {})
+    }
     return res.json({
       message: "success",
       code: 200,
-      data: { categories },
+      data: { categories, _meta },
     });
   }
 );

@@ -23,6 +23,8 @@ const {
   generatePublicKey,
   getBlogHeaderWidetData,
   likeBlogPostHandler,
+  findBySlug,
+  update_page_state,
 } = require("./blogs-dal");
 
 const {
@@ -37,13 +39,20 @@ const validateCredentials = require("./validateCredentials");
 const createBlogToken = require("../utils/createBlogToken");
 const { findPostsForBlog, findPost } = require("../posts-dal");
 const publickeysDal = require("../publickeys-api/publickeys-dal");
+const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
+const pagesDal = require("../pages-api/pages-dal");
 
 app.use(allowCrossDomain);
+
 
 const BlogFields = {
   name: yup.string(),
   description: yup.string(),
   BlogCategory: yup.object(),
+  logo_url: yup.string(),
+  slug: yup.string(),
+  BlogCategoryId: id,
+  craftjs_json_state: yup.string()
 };
 const BlogFieldKeys = Object.keys(BlogFields);
 
@@ -100,6 +109,40 @@ app.post(
   }
 );
 
+app.get("/blogs/:slug/api_key", async (req, res) => {
+  const { slug } = req.params;
+  const blog = await findBySlug(slug);
+  const key = await publickeysDal.findOne({
+    BlogId: blog.id
+  });
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "slug not valid"])
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
+
+app.get("/blogs/api_key/:api_key", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        api_key: yup.string().required()
+      })
+    })
+  )
+], async (req, res) => {
+  const key = await publickeysDal.findUnique(req.params.api_key);
+  if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
+  const blog = await findByPkOr404(key.BlogId);
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { blog, key }
+  })
+});
+
+
 app.post("/blogs/api_key", [
   validateRequest(
     yup.object().shape({
@@ -109,9 +152,10 @@ app.post("/blogs/api_key", [
     })
   )
 ], async (req, res) => {
-  const key = await publickeysDal.findByPkOr404(req.body.api_key);
+  const key = await publickeysDal.findUnique(req.body.api_key);
   if (!key) throw new ErrorHandler(401, "Unauthorized", [ "api_key not valid"])
   const blog = await findByPkOr404(key.BlogId);
+  blog.pages = await pagesDal.findByBlogId(blog.id);
   return res.json({
     code: 200,
     message: "success",
@@ -140,6 +184,32 @@ app.post(
     return res.json(getResponse(user));
   }
 );
+
+app.patch("/blogs/:apikey/update_page_state/:page_id",
+  validateRequest(
+    yup.object().shape({
+      requestBody: yup.object().shape({
+        craftjs_json_state: yup.string().required()
+      }),
+      params: yup.object().shape({
+        apikey: yup.string().required(),
+        page_id: yup.string().required()
+      })
+    })
+  ),
+  async (req, res) => {
+    const { apikey, page_id } = req.params;
+    console.log({ apikey, page_id })
+    const { craftjs_json_state }  = req.body;
+    await update_page_state({
+      apikey, page_id, craftjs_json_state
+    })
+    return res.json({
+      code: 201,
+      message: "success"
+    })
+  }
+)
 
 app.get("/blogs/:blog_id/categories",[
   validateRequest(
@@ -203,6 +273,28 @@ app.get("/blogs/:blog_id/pages",[
   });
 });
 
+app.get("/blogs/:blog_id/pages/:slug", [
+  validateRequest(
+    yup.object().shape({
+      params: yup.object().shape({
+        blog_id: param_id.required(),
+        slug: yup.string().required()
+      })
+    })
+  )
+], async (req,res) => {
+  const {
+    blog_id: BlogId,
+    slug 
+  } = req.params;
+  const page = await findByBlogSlugOr404({ BlogId, slug });
+  return res.json({
+    code: 200,
+    message: "success",
+    data: { page }
+  })
+})
+
 app.get(
   "/blogs/:blog_id/posts",
   [
@@ -265,20 +357,22 @@ app.get(
           post_id: yup.string(),
         }),
         query: yup.object().shape({
-          page: yup.number().integer().positive().default(1),
-          pageSize: yup.number().integer().positive().default(3),
-      }),
+          page: param_id.default("1"),
+          pageSize: param_id.default("3"),
+        }),
       })
     ),
   ],
   async (req, res) => {
     const { post_id: PostId } = req.params;
     const { page, pageSize } = req.query;
-    const { postcomments: comments, count } = await findComments({ PostId });
+    const { postcomments: comments, count } = await findComments({ 
+      PostId, page, pageSize
+    });
     return res.json({
       code: 200,
       message: "success",
-      data: { page: page || 1, pageSize: pageSize || 3, count, comments },
+      data: { page: Number(page) || 1, pageSize: Number(pageSize) || 3, count, comments },
     });
   }
 );
@@ -313,8 +407,8 @@ app.post(
 app.get(
   "/blogs",
   [
-    jwtRequired,
-    passUserFromJWT,
+    // jwtRequired,
+    // passUserFromJWT,
     validateRequest(
       yup.object().shape({
         query: yup.object().shape({
@@ -336,6 +430,24 @@ app.get(
   }
 );
 
+
+app.get(
+  "/me/blogs",
+  [
+    jwtRequired,
+    passUserFromJWT
+  ],
+  async (req, res) => {
+    const { UserId } = req.user;
+    const blogs = await findAll({ UserId });
+    return res.json({
+      code: 200,
+      message: "sucess",
+      data: { blogs },
+    });
+  }
+);
+
 app.get(
   "/blogs/:blog_id",
   [
@@ -349,10 +461,13 @@ app.get(
   ],
   async (req, res) => {
     const blog = await findByPkOr404(req.params.blog_id);
+    const key = await publickeysDal.findOne({
+      BlogId: blog.id
+    });
     return res.json({
       code: 200,
       message: "sucess",
-      data: { blog },
+      data: { blog, key },
     });
   }
 );
@@ -360,7 +475,9 @@ app.get(
 const createBlogFields = {};
 BlogFieldKeys.map(
   (key) => {
-    // if (key === 'description') return createBlogFields[key]
+    if (key === 'description') return createBlogFields[key]
+    if (key === 'slug') return createBlogFields[key]
+    if (key === 'craftjs_json_state') return createBlogFields[key]
     return (createBlogFields[key] = BlogFields[key].required())
   }
 );

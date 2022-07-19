@@ -28,7 +28,8 @@ app.get("/pages", [
             page: yup.number().integer().positive().default(1),
             pageSize: yup.number().integer().positive().default(10),
             status: yup.string(),
-            query: yup.string()
+            query: yup.string(),
+            BlogId: param_id
         })
     }))
 ], async (req,res) => {

@@ -21,6 +21,10 @@ module.exports = (sequelize, DataTypes) => {
         logo_url: {
             type: DataTypes.STRING,
             allowNull: false
+        },
+        craftjs_json_state: {
+            type: DataTypes.STRING,
+            allowNull: false
         }
     }, options);
     Blog.findByPkOrError = async pk => {

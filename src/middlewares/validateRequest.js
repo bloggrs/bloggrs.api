@@ -27,7 +27,8 @@ module.exports = (yupSchema,strict = true,options) => {
                 params: req.params
            }, { abortEarly: false, strict })
        } catch (err) {
-           throw new ErrorHandler(403,"Validation error",err.errors)
+           console.log(err)
+           throw new ErrorHandler(403,"Validation error",err.errors || [1])
        }
         next()
     }

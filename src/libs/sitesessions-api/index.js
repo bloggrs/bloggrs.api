@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createBlogContact, updateBlogContact, deleteBlogContact, findByPkOr404 } = require("./blogcontacts-dal");
+const { findAll, createSiteSession, updateSiteSession, deleteSiteSession, findByPkOr404 } = require("./sitesessions-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,16 +13,14 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const BlogContactFields = {
-    first_name: yup.string(),
-    last_name: yup.string(),
-    email: yup.string(),
-    content: yup.string(),
+const SiteSessionFields = {
+    endedAt: yup.date(),
+    UserId: id,
     BlogId: id
 }
-const BlogContactFieldKeys = Object.keys(BlogContactFields)
+const SiteSessionFieldKeys = Object.keys(SiteSessionFields)
 
-app.get("/blogcontacts", [
+app.get("/sitesessions", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -33,75 +31,78 @@ app.get("/blogcontacts", [
         })
     }))
 ], async (req,res) => {
-    let blogcontacts = await findAll(req.query); 
+    let sitesessions = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { blogcontacts }
+        data: { sitesessions }
     })
 })
 
-app.get("/blogcontacts/:blogcontact_id", [
+app.get("/sitesessions/:sitesession_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            sitesession_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const blogcontact = await findByPkOr404(req.params.blogcontact_id);
+    const sitesession = await findByPkOr404(req.params.sitesession_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { blogcontact }
+        data: { sitesession }
     })
 })
 
 
-const CreateBlogContactFields = {};
-BlogContactFieldKeys.map(key => CreateBlogContactFields[key] = BlogContactFields[key].required());
-app.post("/blogcontacts",[
+const CreateSiteSessionFields = {};
+SiteSessionFieldKeys.map(key => {
+    if (key === "UserId" || key === "endedAt") return CreateSiteSessionFields[key] = SiteSessionFields[key];
+    CreateSiteSessionFields[key] = SiteSessionFields[key].required()
+});
+app.post("/sitesessions",[
     // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(CreateBlogContactFields)
+        requestBody: yup.object().shape(CreateSiteSessionFields)
     }))
 ], async (req,res) => {
-    let blogcontact = await createBlogContact(req.body);
+    let sitesession = await createSiteSession(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { blogcontact }
+        data: { sitesession }
     })
 })
 
-app.patch("/blogcontacts/:blogcontact_id", [
+app.patch("/sitesessions/:sitesession_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(BlogContactFields),
+        requestBody: yup.object().shape(SiteSessionFields),
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            sitesession_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let blogcontact = await updateBlogContact({
-        pk: req.params.blogcontact_id,
+    let sitesession = await updateSiteSession({
+        pk: req.params.sitesession_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { blogcontact }
+        data: { sitesession }
     })
 })
 
-app.delete("/blogcontacts/:blogcontact_id", [
+app.delete("/sitesessions/:sitesession_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            sitesession_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deleteBlogContact(req.params.blogcontact_id)
+    await deleteSiteSession(req.params.sitesession_id)
     return res.json({
         code: 204,
         message: "success"

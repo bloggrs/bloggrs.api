@@ -33,7 +33,7 @@ module.exports = {
     },
     updateUser: async ({pk,data}) => {
         let keys = Object.keys(data);
-        let user = await User.findByPk(pk);
+        let user = await prisma.users.findUnique({ where: { id: Number(pk) }});
         user = JSON.parse(JSON.stringify(user))
         for (let key of keys){
             user[key] = key === "password" ? await bcrypt.hash(data[key], SALT_ROUNDS) : data[key]

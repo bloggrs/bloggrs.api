@@ -18,7 +18,7 @@ module.exports = {
     //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
     //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
     // ]
-    return await Blog.findAll({
+    return await Blog.findMany({
       where,
       offset: (page - 1) & page,
       limit: pageSize,
@@ -67,7 +67,7 @@ module.exports = {
     return Promise.all(categories);
   },
   getBlogPages: async (BlogId) => {
-      const pages = await Page.findAll({
+      const pages = await Page.findMany({
           where: { BlogId }
       })
       return pages;

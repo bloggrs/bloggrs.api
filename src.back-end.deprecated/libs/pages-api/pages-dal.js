@@ -3,13 +3,14 @@ const { Page, Sequelize } = require("../../models");
 
 module.exports = {
     findByPkOr404: pk => Page.findByPkOr404(pk),
-    findAll: async ({ page = 1, pageSize = 10 }) => {
+    findAll: async ({ page = 1, pageSize = 10, BlogId }) => {
         const where = {}
+        if (BlogId) where.BlogId = BlogId;
         // if (query) where[Sequelize.Op.or] = [
         //     { contract_type: { [Sequelize.Op.like]: `%${query}%` } },
         //     { comment: { [Sequelize.Op.like]: `%${query}%` } }
         // ]
-        return await Page.findAll({
+        return await Page.findMany({
             where,
             offset: (page - 1) & page,
             limit: pageSize,

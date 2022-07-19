@@ -10,7 +10,7 @@ const INVALID_CREDENTIALS_ERROR = new ErrorHandler(400, "Invalid credentials", [
 module.exports = async ({ blog_id, secret }) => {
     let blog = await prisma.blogs.findOne({ where: { id: blog_id } })
     if (!blog) throw INVALID_CREDENTIALS_ERROR
-    const secretKeys = await prisma.secretkeys.findAll({
+    const secretKeys = await prisma.secretkeys.findMany({
         where: { BlogId: blog_id }
     })
     const secrets = secretKeys.map(s => s.id)

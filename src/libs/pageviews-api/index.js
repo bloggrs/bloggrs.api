@@ -5,7 +5,7 @@ const app = module.exports = express();
 
 const { allowCrossDomain, validateRequest, jwtRequired, passUserFromJWT, adminRequired } = require("../../middlewares");
 
-const { findAll, createBlogContact, updateBlogContact, deleteBlogContact, findByPkOr404 } = require("./blogcontacts-dal");
+const { findAll, createPageView, updatePageView, deletePageView, findByPkOr404 } = require("./pageviews-dal");
 const { ErrorHandler } = require("../../utils/error");
 
 const yup = require("yup");
@@ -13,16 +13,13 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
-const BlogContactFields = {
-    first_name: yup.string(),
-    last_name: yup.string(),
-    email: yup.string(),
-    content: yup.string(),
-    BlogId: id
+const PageViewFields = {
+    pathname: yup.string(),
+    SiteSessionId: id
 }
-const BlogContactFieldKeys = Object.keys(BlogContactFields)
+const PageViewFieldKeys = Object.keys(PageViewFields)
 
-app.get("/blogcontacts", [
+app.get("/pageviews", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
@@ -33,75 +30,75 @@ app.get("/blogcontacts", [
         })
     }))
 ], async (req,res) => {
-    let blogcontacts = await findAll(req.query); 
+    let pageviews = await findAll(req.query); 
     return res.json({
         message: "success",
         code: 200,
-        data: { blogcontacts }
+        data: { pageviews }
     })
 })
 
-app.get("/blogcontacts/:blogcontact_id", [
+app.get("/pageviews/:pageview_id", [
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            pageview_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    const blogcontact = await findByPkOr404(req.params.blogcontact_id);
+    const pageview = await findByPkOr404(req.params.pageview_id);
     return res.json({
         code: 200,
         message: "sucess",
-        data: { blogcontact }
+        data: { pageview }
     })
 })
 
 
-const CreateBlogContactFields = {};
-BlogContactFieldKeys.map(key => CreateBlogContactFields[key] = BlogContactFields[key].required());
-app.post("/blogcontacts",[
+const CreatePageViewFields = {};
+PageViewFieldKeys.map(key => CreatePageViewFields[key] = PageViewFields[key].required());
+app.post("/pageviews",[
     // jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(CreateBlogContactFields)
+        requestBody: yup.object().shape(CreatePageViewFields)
     }))
 ], async (req,res) => {
-    let blogcontact = await createBlogContact(req.body);
+    let pageview = await createPageView(req.body);
     return res.json({
         code: 200,
         message: "success",
-        data: { blogcontact }
+        data: { pageview }
     })
 })
 
-app.patch("/blogcontacts/:blogcontact_id", [
+app.patch("/pageviews/:pageview_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
-        requestBody: yup.object().shape(BlogContactFields),
+        requestBody: yup.object().shape(PageViewFields),
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            pageview_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    let blogcontact = await updateBlogContact({
-        pk: req.params.blogcontact_id,
+    let pageview = await updatePageView({
+        pk: req.params.pageview_id,
         data: req.body
     });
     return res.json({
         code: 200,
         message: "success",
-        data: { blogcontact }
+        data: { pageview }
     })
 })
 
-app.delete("/blogcontacts/:blogcontact_id", [
+app.delete("/pageviews/:pageview_id", [
     jwtRequired, passUserFromJWT, adminRequired,
     validateRequest(yup.object().shape({
         params: yup.object().shape({
-            blogcontact_id: param_id.required()
+            pageview_id: param_id.required()
         })
     }))
 ], async (req,res) => {
-    await deleteBlogContact(req.params.blogcontact_id)
+    await deletePageView(req.params.pageview_id)
     return res.json({
         code: 204,
         message: "success"

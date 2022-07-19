@@ -11,14 +11,14 @@ module.exports = {
         // ]
         return await prisma.blogcontacts.findMany({
             where,
-            skip: (page - 1) & page
+            skip: (page - 1) * pageSize,
             take: pageSize,
         })
     },
     createBlogContact: async ({ 
-        name
+        first_name, last_name, email, content, BlogId
      }) => await prisma.blogcontacts.create({ 
-        data: { name }
+        data: { first_name, last_name, email, content, BlogId }
       }),
     updateBlogContact: async ({pk,data}) => {
         let keys = Object.keys(data);

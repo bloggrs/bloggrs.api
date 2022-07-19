@@ -13,11 +13,33 @@ const { param_id, id } = require("../utils/validations");
 
 app.use(allowCrossDomain)
 
+const block_fields = {
+    name: yup.string().required(),
+    attributes: yup.object().required()
+  }
+  
+  const blocks_schema = yup.array().of(
+    yup.object().shape({
+      ...block_fields,
+      children: yup.array().of(
+          yup.object().shape({
+              ...block_fields,
+              children: yup.array().of(
+                  yup.object().shape({
+                      ...block_fields
+                  })
+              )
+          })
+      )
+    })
+  )
+
 const PageFields = {
     name: yup.string(),
     slug: yup.string(),
     BlogId: id,
-    UserId: id
+    UserId: id,
+    blocks: blocks_schema
 }
 const PageFieldKeys = Object.keys(PageFields)
 

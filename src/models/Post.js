@@ -1,6 +1,7 @@
 "use strict";
 
 const { ErrorHandler } = require("../utils/error");
+const { parser: html_parser } = require("node-html-parser");
 
 module.exports = (sequelize, DataTypes) => {
   let options = {
