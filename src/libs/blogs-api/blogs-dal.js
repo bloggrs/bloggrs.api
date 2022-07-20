@@ -4,6 +4,12 @@ const {
   findAll: findAllBlogPostCategories,
 } = require("../blogpostcategories-dal");
 
+prisma.blogs.findByPkOr404 = async (pk) => {
+  const blog = await prisma.blogs.findUnique( { where: { id: Number(pk) } })
+  if (!blog) throw ErrorHandler.get404("Blog");
+  return blog;
+  
+}
 module.exports = {
   getBlogHeaderWidetData: async BlogId => {
     BlogId = Number(BlogId)
@@ -47,7 +53,10 @@ module.exports = {
     for (let key of keys) {
       blog[key] = data[key];
     }
-    await blog.save();
+    await prisma.blogs.update({
+      where: { id: Number(pk) },
+      data
+    })
     return blog;
   },
   deleteBlog: async (pk) =>
