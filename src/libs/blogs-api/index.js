@@ -52,6 +52,7 @@ const BlogFields = {
   logo_url: yup.string(),
   slug: yup.string(),
   BlogCategoryId: id,
+  BlogThemeId: id,
   craftjs_json_state: yup.string()
 };
 const BlogFieldKeys = Object.keys(BlogFields);
