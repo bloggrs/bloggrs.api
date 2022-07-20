@@ -38,6 +38,7 @@ const secretkeys_api = require("./libs/secretkeys-api");
 const publickeys_api = require("./libs/publickeys-api");
 const blogpostcategories_api = require("./libs/blogpostcategories-api");
 const blogthemes_api = require("./libs/blogthemes-api");
+const tags_api = require("./libs/tags-api");
 const files_api = require("./libs/files-api");
 
 const app = express();
@@ -72,6 +73,7 @@ app.use(PATHNAME_PREFIX, publickeys_api);
 app.use(PATHNAME_PREFIX, blogpostcategories_api);
 app.use(PATHNAME_PREFIX, blogthemes_api);
 app.use(PATHNAME_PREFIX, files_api);
+app.use(PATHNAME_PREFIX, tags_api);
 
 app.get("/", (req, res) => res.json({ versions: ["v1"] }));
 app.get("*", (req, res) =>
