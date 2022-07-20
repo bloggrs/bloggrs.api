@@ -11,7 +11,8 @@ module.exports = async (file, callback) => {
         ContentEncoding: file.encoding,
         ACL: "public-read"
     };
-    await S3_BUCKET.upload(data, () => { 
+    await S3_BUCKET.upload(data, (...data) => { 
+        console.log(data)
         if (process.env.DEBUG)
             console.log(`https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`)
         const url = `https://${process.env.S3_BUCKET}.s3.amazonaws.com/${key}`

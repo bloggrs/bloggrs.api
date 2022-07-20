@@ -13,7 +13,9 @@ const {
 const multer = require("multer");
 const { ErrorHandler } = require("../../utils/error");
 const uploadFile = require("../aws/uploadFile");
+const { createMedia } = require("../medias-api/medias-dal");
 const upload = multer();
+
 const uploadMiddleware = upload.fields([
     { name: 'image', maxCount: 1 },
 ])
@@ -28,11 +30,28 @@ app.post("/files/upload", [
         const errors = [ "image binary is required" ] 
         throw new ErrorHandler(403, "Validation Error", errors)
     }
-    uploadFile(image, url => {
+    const {
+        fieldname: fieldName, originalname: originalName,
+        encoding, mimetype,
+        size, destination,
+        filename, path
+    } = image;
+    
+    const fileProperties = {
+        fieldName, originalName,
+        encoding, mimetype,
+        size, destination,
+        filename, path
+    }
+    // return res.json(JSON.stringify(image))
+    uploadFile(image, async media_url => {
+        const data = Object.assign(fileProperties, { media_url } );
+        const media = await createMedia(data)
         return res.json({
             code: 200,
             success: 1,
-            file: { url }
+            file: { url: media_url },
+            data: { media }
         })
     })
 })

@@ -25,6 +25,18 @@ model blogthemes {
   blogs     blogs[]
 }
 
+model medias {
+  id                      Int     @id @default(autoincrement())
+  fieldName               String   @db.VarChar(255)
+  originalName            String   @db.VarChar(255)
+  encoding                String   @db.VarChar(255)
+  mimetype                String   @db.VarChar(255)
+  size                    Int
+  media_url               String   @db.VarChar(255)
+  createdAt DateTime?     @db.DateTime(0) @default(now())
+  updatedAt DateTime?     @db.DateTime(0) @default(now())
+}
+
 model blogcontacts {
   id         Int      @id @default(autoincrement())
   first_name String   @db.VarChar(255)
