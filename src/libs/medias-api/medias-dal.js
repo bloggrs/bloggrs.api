@@ -1,6 +1,12 @@
 
 const prisma = require("../../prisma");
 
+prisma.medias.findByPkOr404 = async (pk) => {
+  const media = await prisma.medias.findUnique( { where: { id: Number(pk) } })
+  if (!media) throw ErrorHandler.get404("Media");
+  return media;
+  
+}
 module.exports = {
     findByPkOr404: pk => prisma.medias.findByPkOr404(pk),
     findAll: async ({ page = 1, pageSize = 10 }) => {
@@ -11,8 +17,8 @@ module.exports = {
         // ]
         return await prisma.medias.findMany({
             where,
-            offset: (page - 1) & page,
-            limit: pageSize,
+            skip: (Number(page) - 1) & Number(page),
+            take: Number(pageSize),
         })
     },
     createMedia: async ({ 
@@ -21,7 +27,8 @@ module.exports = {
         encoding,
         mimetype,
         size,
-        media_url
+        media_url,
+        BlogId
      }) => await prisma.medias.create({ 
         data: {
             fieldName,
@@ -29,7 +36,8 @@ module.exports = {
             encoding,
             mimetype,
             size,
-            media_url
+            media_url,
+            BlogId
         }
       }),
     updateMedia: async ({pk,data}) => {

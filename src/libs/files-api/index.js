@@ -45,13 +45,18 @@ app.post("/files/upload", [
     }
     // return res.json(JSON.stringify(image))
     uploadFile(image, async media_url => {
-        const data = Object.assign(fileProperties, { media_url } );
-        const media = await createMedia(data)
-        return res.json({
-            code: 200,
-            success: 1,
-            file: { url: media_url },
-            data: { media }
-        })
+        const data = Object.assign(fileProperties, { media_url, BlogId: req.BlogId } );
+        console.log(data)
+        try {
+            const media = await createMedia(data)
+            return res.json({
+                code: 200,
+                success: 1,
+                file: { url: media_url },
+                data: { media }
+            })
+        } catch(err) {
+            return res.status(500).json(new ErrorHandler(500, "Bad Request", [ ]))
+        }
     })
 })

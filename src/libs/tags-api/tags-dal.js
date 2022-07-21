@@ -1,6 +1,7 @@
 const prisma = require("../../prisma");
 const { ErrorHandler } = require("../../utils/error");
 
+if (!prisma.tags) prisma.tags = {}
 prisma.tags.findByPkOr404 = async (pk) => {
   const tag = await prisma.tags.findUnique( { where: { id: Number(pk) } })
   if (!tag) throw ErrorHandler.get404("Tag");

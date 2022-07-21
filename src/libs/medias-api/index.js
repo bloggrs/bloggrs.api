@@ -20,6 +20,7 @@ const MediaFields = {
     mimetype: yup.string(),
     size: yup.string(),
     media_url: yup.string(),
+    BlogId: yup.string(),
 }
 const MediaFieldKeys = Object.keys(MediaFields)
 
@@ -27,8 +28,8 @@ app.get("/medias", [
     jwtRequired, passUserFromJWT,
     validateRequest(yup.object().shape({
         query: yup.object().shape({
-            page: yup.number().integer().positive().default(1),
-            pageSize: yup.number().integer().positive().default(10),
+            page: yup.string().transform(val => Number(val)),
+            pageSize: yup.string().transform(val => Number(val)),
             status: yup.string(),
             query: yup.string()
         })

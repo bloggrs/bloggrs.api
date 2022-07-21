@@ -33,8 +33,14 @@ model medias {
   mimetype     String    @db.VarChar(255)
   size         Int
   media_url    String    @db.VarChar(255)
+
+  BlogId     Int
+  blogs      blogs     @relation(fields: [BlogId], references: [id], onDelete: NoAction, map: "medias_ibfk_1")
+
   createdAt    DateTime? @default(now()) @db.DateTime(0)
   updatedAt    DateTime? @default(now()) @db.DateTime(0)
+
+  @@index([BlogId], map: "BlogId")
 }
 
 model blogcontacts {
@@ -84,6 +90,7 @@ model blogs {
   secretkeys         secretkeys[]
   publickeys         publickeys[]
   teammembers        teammembers[]
+  medias             medias[]
 
   @@index([BlogThemeId], map: "BlogThemeId")
   @@index([BlogCategoryId], map: "BlogCategoryId")

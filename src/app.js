@@ -40,6 +40,7 @@ const blogpostcategories_api = require("./libs/blogpostcategories-api");
 const blogthemes_api = require("./libs/blogthemes-api");
 const tags_api = require("./libs/tags-api");
 const files_api = require("./libs/files-api");
+const medias_api = require("./libs/medias-api");
 
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +56,14 @@ app.use(allowCrossDomain);
 const PATHNAME_PREFIX = "/api/v1";
 
 docs_collector.generateSwaggerDocument();
+
+app.use((req,res,next) => {
+  console.log(req.headers)
+  const BlogId = Number(req.headers["x-bloggrs-id"]);
+  if (isNaN(BlogId)) return next();
+  req.BlogId = BlogId
+  return next();
+})
 app.use(PATHNAME_PREFIX, api_docs);
 app.use(PATHNAME_PREFIX, auth_api);
 app.use(PATHNAME_PREFIX, users_api);
@@ -74,6 +83,7 @@ app.use(PATHNAME_PREFIX, blogpostcategories_api);
 app.use(PATHNAME_PREFIX, blogthemes_api);
 app.use(PATHNAME_PREFIX, files_api);
 app.use(PATHNAME_PREFIX, tags_api);
+app.use(PATHNAME_PREFIX, medias_api);
 
 app.get("/", (req, res) => res.json({ versions: ["v1"] }));
 app.get("*", (req, res) =>
