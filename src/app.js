@@ -13,7 +13,12 @@ const express = require("express");
 const compression = require("compression");
 const bodyParser = require("body-parser");
 const logger = require("morgan")("dev");
+const path = require("path");
+const { fileURLToPath } = require('url');
 const DocsCollector = require("docs-collector");
+const { createSSRApp } = require('vue')
+const { renderToString } = require('@vue/server-renderer')
+const fs = require('fs');
 
 const docs_collector = new DocsCollector(
   __dirname + "/libs/api-docs/swagger-input.json",
@@ -55,6 +60,7 @@ const console_api = require("./console-api");
 const app = express();
 const server = http.createServer(app);
 
+// Basic middleware
 app.use(cors())
 app.use(compression());
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
@@ -62,11 +68,81 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(express.json({ limit: "50mb" }));
 app.use(logger);
 app.use(allowCrossDomain);
+
+// Vite middleware setup
+function viteMiddleware(req, res, next) {
+  if (!app.get('vite') && process.env.NODE_ENV === 'development') {
+    const { createServer } = require('vite')
+    createServer({
+      server: { middlewareMode: true },
+      appType: 'custom'
+    }).then(vite => {
+      app.set('vite', vite) // Store vite instance in app
+      vite.middlewares(req, res, next)
+    }).catch(err => {
+      console.error('Vite setup error:', err)
+      next(err)
+    })
+  } else {
+    const vite = app.get('vite')
+    if (vite) {
+      vite.middlewares(req, res, next)
+    } else {
+      next()
+    }
+  }
+}
+
+// Register Vite middleware
+app.use(viteMiddleware)
+
+// Vue SSR route
+app.get('/', (req, res) => {
+  const vite = app.get('vite')
+  if (vite) {
+    const template = fs.readFileSync(
+      path.join(__dirname, 'views/index.html'),
+      'utf-8'
+    )
+    
+    vite.transformIndexHtml(req.url, template)
+      .then(transformedTemplate => {
+        return vite.ssrLoadModule('/src/vue/entry-server.js')
+          .then(({ render }) => render())
+          .then(appHtml => {
+            const html = transformedTemplate.replace('<!--vue-ssr-outlet-->', appHtml)
+            res.send(html)
+          })
+      })
+      .catch(err => {
+        vite.ssrFixStacktrace(err)
+        console.error('SSR Error:', err)
+        res.status(500).send('Server Error')
+      })
+  } else {
+    // Production fallback
+    try {
+      const template = fs.readFileSync(
+        path.join(__dirname, 'views/index.html'),
+        'utf-8'
+      )
+      const { render } = require('./vue/entry-server.js')
+      render().then(appHtml => {
+        const html = template.replace('<!--vue-ssr-outlet-->', appHtml)
+        res.send(html)
+      })
+    } catch (err) {
+      console.error('SSR Error:', err)
+      res.status(500).send('Server Error')
+    }
+  }
+})
+
+// API routes
 app.use(authenticateUser);
 app.use(addPermissionContext);
 
 const PATHNAME_PREFIX = "/api/v1";
-
 docs_collector.generateSwaggerDocument();
 app.use(PATHNAME_PREFIX, api_docs);
 app.use(PATHNAME_PREFIX, auth_api);
@@ -95,7 +171,8 @@ app.use(PATHNAME_PREFIX, permissions_api);
 app.use(PATHNAME_PREFIX, teammemberspermissions_api);
 app.use(PATHNAME_PREFIX, resourcepolicies_api);
 app.use(PATHNAME_PREFIX, console_api);
-app.get("/", (req, res) => res.json({ versions: ["v1"] }));
+
+// Move the catch-all route to the end
 app.get("*", (req, res) =>
   res.status(404).json({
     code: 404,
@@ -104,11 +181,11 @@ app.get("*", (req, res) =>
   })
 );
 
+// Error handler
 app.use(errorHandler);
 
-if (require.main === module) {
-  const PORT = process.env.PORT || 4000;
-  server.listen(PORT, () => console.log("Running on port: ", PORT));
-}
+// Start server
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => console.log("Running on port:", PORT));
 
 module.exports = app;

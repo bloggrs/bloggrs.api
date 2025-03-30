@@ -1,0 +1,10 @@
+{
+  "ignore": [
+    "client/*",
+    "src/vue/*",
+    "src/views/*",
+    "*.test.js",
+    "node_modules/*"
+  ],
+  "ext": "js,json"
+} 
