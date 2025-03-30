@@ -1,4 +1,5 @@
-if (!process.env.DONT_USE_DOTENV) require("dotenv").config();
+const dotenv = require('dotenv');
+if (!process.env.DONT_USE_DOTENV) dotenv.config();
 
 require('randomuuid') // crypto polyfill
 require("express-async-errors");
@@ -19,6 +20,9 @@ const DocsCollector = require("docs-collector");
 const { createSSRApp } = require('vue')
 const { renderToString } = require('@vue/server-renderer')
 const fs = require('fs');
+const { dirname, resolve } = require('path');
+const { createServer } = require('vite');
+const { renderComponentWithNaiveUI } = require('./utils/naive-ui-ssr');
 
 const docs_collector = new DocsCollector(
   __dirname + "/libs/api-docs/swagger-input.json",
@@ -59,6 +63,7 @@ const console_api = require("./console-api");
 
 const app = express();
 const server = http.createServer(app);
+// __dirname is already defined since this is a CommonJS module
 
 // Basic middleware
 app.use(cors())
@@ -69,74 +74,15 @@ app.use(express.json({ limit: "50mb" }));
 app.use(logger);
 app.use(allowCrossDomain);
 
-// Vite middleware setup
-function viteMiddleware(req, res, next) {
-  if (!app.get('vite') && process.env.NODE_ENV === 'development') {
-    const { createServer } = require('vite')
-    createServer({
-      server: { middlewareMode: true },
-      appType: 'custom'
-    }).then(vite => {
-      app.set('vite', vite) // Store vite instance in app
-      vite.middlewares(req, res, next)
-    }).catch(err => {
-      console.error('Vite setup error:', err)
-      next(err)
-    })
-  } else {
-    const vite = app.get('vite')
-    if (vite) {
-      vite.middlewares(req, res, next)
-    } else {
-      next()
-    }
-  }
-}
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Register Vite middleware
-app.use(viteMiddleware)
+// Import the plugin system
+const pluginSystem = require('./bloggrs');
 
-// Vue SSR route
-app.get('/', (req, res) => {
-  const vite = app.get('vite')
-  if (vite) {
-    const template = fs.readFileSync(
-      path.join(__dirname, 'views/index.html'),
-      'utf-8'
-    )
-    
-    vite.transformIndexHtml(req.url, template)
-      .then(transformedTemplate => {
-        return vite.ssrLoadModule('/src/vue/entry-server.js')
-          .then(({ render }) => render())
-          .then(appHtml => {
-            const html = transformedTemplate.replace('<!--vue-ssr-outlet-->', appHtml)
-            res.send(html)
-          })
-      })
-      .catch(err => {
-        vite.ssrFixStacktrace(err)
-        console.error('SSR Error:', err)
-        res.status(500).send('Server Error')
-      })
-  } else {
-    // Production fallback
-    try {
-      const template = fs.readFileSync(
-        path.join(__dirname, 'views/index.html'),
-        'utf-8'
-      )
-      const { render } = require('./vue/entry-server.js')
-      render().then(appHtml => {
-        const html = template.replace('<!--vue-ssr-outlet-->', appHtml)
-        res.send(html)
-      })
-    } catch (err) {
-      console.error('SSR Error:', err)
-      res.status(500).send('Server Error')
-    }
-  }
-})
+// Initialize plugins
+const activePlugins = pluginSystem.initPlugins();
+console.log(`Loaded ${activePlugins.size} active plugins`);
 
 // API routes
 app.use(authenticateUser);
@@ -172,6 +118,145 @@ app.use(PATHNAME_PREFIX, teammemberspermissions_api);
 app.use(PATHNAME_PREFIX, resourcepolicies_api);
 app.use(PATHNAME_PREFIX, console_api);
 
+// Plugin API routes
+app.get('/api/plugins', (req, res) => {
+  const plugins = pluginSystem.getActivePlugins().map(plugin => ({
+    id: plugin.id,
+    name: plugin.name,
+    version: plugin.version,
+    description: plugin.description,
+    enabled: plugin.enabled,
+    routes: Object.keys(plugin.routes || {})
+  }));
+  
+  res.json(plugins);
+});
+
+// SSR middleware with plugin support
+app.use(async (req, res, next) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/')) {
+    return next();
+  }
+  
+  try {
+    // Read the HTML template
+    const templatePath = path.join(__dirname, 'views/index.html');
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(`Template file not found: ${templatePath}`);
+    }
+    const template = fs.readFileSync(templatePath, 'utf-8');
+    
+    // Check if a plugin handles this route
+    const pluginMatch = pluginSystem.getPluginForRoute(req.path);
+    
+    // Determine which render function to use
+    let appHtml = '';
+    let cssHtml = '';
+    let pluginInUse = null;
+    
+    if (pluginMatch && pluginMatch.plugin.override) {
+      // Use the plugin's component
+      try {
+        console.log(`Using plugin ${pluginMatch.plugin.id} for route ${req.path}`);
+        
+        // Load Vue SSR modules
+        const { createSSRApp } = require('vue');
+        const { renderToString } = require('vue/server-renderer');
+        
+        // Ensure component is properly loaded
+        const component = pluginMatch.component;
+        if (!component) {
+          throw new Error('Plugin component not found or invalid');
+        }
+        
+        // Create app with the plugin's component
+        const app = createSSRApp(component);
+        
+        // Render to string
+        appHtml = await renderToString(app);
+        cssHtml = pluginMatch.styles || '';
+        
+        pluginInUse = pluginMatch.plugin.id;
+        console.log('Plugin SSR completed successfully');
+      } catch (err) {
+        console.error(`Failed to render plugin component for ${req.path}:`, err);
+        // Fall back to default renderer
+      }
+    }
+    
+    // If no plugin component was rendered, use the default renderer
+    if (!appHtml) {
+      try {
+        const serverEntry = require('./vue/entry-server.js');
+        const result = await serverEntry.render(req.originalUrl);
+        appHtml = result.appHtml;
+        cssHtml = result.cssHtml;
+      } catch (err) {
+        console.error('Failed to load default Vue SSR renderer:', err);
+        throw new Error('Vue SSR renderer failed to load');
+      }
+    }
+    
+    // Add plugin info to the HTML
+    let pluginInfo = '';
+    if (pluginInUse) {
+      pluginInfo = `<script>window.__activePlugin = "${pluginInUse}";</script>`;
+    }
+    
+    // Inject rendered content into the template
+    const html = template
+      .replace('<!--ssr-outlet-->', appHtml)
+      .replace('<!--css-outlet-->', cssHtml ? `<style>${cssHtml}</style>` : '')
+      .replace('<!--plugin-info-->', pluginInfo);
+    
+    // Send the response
+    return res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+  } catch (error) {
+    console.error('SSR Error:', error);
+    return res.status(500).send(`
+      <h1>Server Error</h1>
+      <p>${error.message}</p>
+      <pre>${error.stack}</pre>
+    `);
+  }
+});
+
+// Update your route handler
+app.get('/', async (req, res) => {
+  try {
+    const nativeUiPlugin = await PluginManager.getPlugin('nativeui-blog');
+    
+    if (nativeUiPlugin && nativeUiPlugin.component) {
+      // Use the Naive UI SSR utility to render
+      const { html, cssString } = await renderComponentWithNaiveUI(nativeUiPlugin.component);
+      
+      // Send the response with the collected CSS
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Blog - Naive UI</title>
+          <style>${cssString}</style>
+        </head>
+        <body>
+          <div id="app">${html}</div>
+          <script src="/js/app.js"></script>
+        </body>
+        </html>
+      `);
+    }
+    
+    // Fallback to standard rendering if plugin not found
+    // ... your existing fallback code ...
+  } catch (error) {
+    console.error('Error rendering plugin:', error);
+    res.status(500).send('Error rendering the page');
+  }
+});
+
 // Move the catch-all route to the end
 app.get("*", (req, res) =>
   res.status(404).json({
@@ -184,8 +269,15 @@ app.get("*", (req, res) =>
 // Error handler
 app.use(errorHandler);
 
+// Define port
+const PORT = process.env.PORT || 3000;
+
 // Start server
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log("Running on port:", PORT));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`- Web UI: http://localhost:${PORT}/`);
+  console.log(`- API: http://localhost:${PORT}/api/v1/`);
+  console.log(`- Plugins API: http://localhost:${PORT}/api/plugins`);
+});
 
 module.exports = app;

@@ -1,0 +1,13 @@
+{
+  "id": "nativeui-blog",
+  "name": "NativeUI Blog",
+  "version": "1.0.0",
+  "description": "A modern version of the blog using NativeUI components",
+  "author": "Your Name",
+  "enabled": true,
+  "routes": {
+    "/": "NativeApp.vue",
+    "/about": "NativeApp.vue"
+  },
+  "override": true
+} 
