@@ -172,6 +172,8 @@ function getPluginForRoute(route) {
   return null;
 }
 
+// Register the influencer platform plugin
+
 module.exports = {
   initPlugins,
   getPlugin,

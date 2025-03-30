@@ -23,6 +23,8 @@ const fs = require('fs');
 const { dirname, resolve } = require('path');
 const { createServer } = require('vite');
 const { renderComponentWithNaiveUI } = require('./utils/naive-ui-ssr');
+const { PluginManager } = require('./utils/plugin-manager');
+const resourceManager = require('./utils/resource-manager');
 
 const docs_collector = new DocsCollector(
   __dirname + "/libs/api-docs/swagger-input.json",
@@ -204,11 +206,30 @@ app.use(async (req, res, next) => {
       pluginInfo = `<script>window.__activePlugin = "${pluginInUse}";</script>`;
     }
     
+    // Load plugin manifest if plugin is active
+    let pluginManifest = {};
+    if (pluginInUse) {
+      try {
+        const manifestPath = path.join(__dirname, 'bloggrs', pluginInUse, 'plugin.json');
+        if (fs.existsSync(manifestPath)) {
+          pluginManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        }
+      } catch (err) {
+        console.error(`Error loading plugin manifest for ${pluginInUse}:`, err);
+      }
+    }
+
+    // Generate head and body resources
+    const headResources = resourceManager.processPluginResources(pluginManifest, 'head');
+    const bodyEndResources = resourceManager.processPluginResources(pluginManifest, 'bodyEnd');
+    
     // Inject rendered content into the template
     const html = template
       .replace('<!--ssr-outlet-->', appHtml)
       .replace('<!--css-outlet-->', cssHtml ? `<style>${cssHtml}</style>` : '')
-      .replace('<!--plugin-info-->', pluginInfo);
+      .replace('<!--plugin-info-->', pluginInfo)
+      .replace('<!--head-resources-->', headResources)
+      .replace('<!--body-end-resources-->', bodyEndResources);
     
     // Send the response
     return res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
@@ -222,40 +243,6 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Update your route handler
-app.get('/', async (req, res) => {
-  try {
-    const nativeUiPlugin = await PluginManager.getPlugin('nativeui-blog');
-    
-    if (nativeUiPlugin && nativeUiPlugin.component) {
-      // Use the Naive UI SSR utility to render
-      const { html, cssString } = await renderComponentWithNaiveUI(nativeUiPlugin.component);
-      
-      // Send the response with the collected CSS
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Blog - Naive UI</title>
-          <style>${cssString}</style>
-        </head>
-        <body>
-          <div id="app">${html}</div>
-          <script src="/js/app.js"></script>
-        </body>
-        </html>
-      `);
-    }
-    
-    // Fallback to standard rendering if plugin not found
-    // ... your existing fallback code ...
-  } catch (error) {
-    console.error('Error rendering plugin:', error);
-    res.status(500).send('Error rendering the page');
-  }
-});
 
 // Move the catch-all route to the end
 app.get("*", (req, res) =>

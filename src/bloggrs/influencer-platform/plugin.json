@@ -1,0 +1,46 @@
+{
+  "id": "influencer-platform",
+  "name": "influencer-platform",
+  "displayName": "Instagram Influencer Platform", 
+  "version": "1.0.0",
+  "description": "A modern influencer marketing platform built with Bulma CSS",
+  "author": "Bloggrs Team",
+  "tags": ["marketing", "influencer", "bulma", "social"],
+  "enabled": true,
+  "priority": 10,
+  "routes": {
+    "/": "App.vue"
+  },
+  "override": true,
+  "resources": {
+    "styles": [
+      {
+        "type": "cdn",
+        "href": "https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css",
+        "position": "head"
+      },
+      {
+        "type": "cdn",
+        "href": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css",
+        "position": "head"
+      }
+    ],
+    "scripts": [
+      {
+        "type": "inline",
+        "content": "document.addEventListener('DOMContentLoaded', function() { const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0); $navbarBurgers.forEach(el => { el.addEventListener('click', () => { const target = el.dataset.target; const $target = document.getElementById(target); el.classList.toggle('is-active'); $target?.classList.toggle('is-active'); }); }); });",
+        "position": "bodyEnd"
+      }
+    ],
+    "meta": [
+      {
+        "name": "description",
+        "content": "Connect with top Instagram influencers for your brand marketing campaigns"
+      },
+      {
+        "name": "theme-color",
+        "content": "#3273dc"
+      }
+    ]
+  }
+}

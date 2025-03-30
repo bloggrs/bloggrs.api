@@ -440,3 +440,82 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Special Bulma Plugin
+
+The repository includes a special plugin that demonstrates how to override the default Vue SSR rendering with a complete HTML template using Bulma CSS framework.
+
+### Influencer Platform Plugin
+
+This plugin shows how to create a modern marketing site with:
+
+- Bulma CSS framework
+- FontAwesome icons
+- Gradient text effects
+- Card-based layouts
+- Interactive hover effects
+
+#### How It Works
+
+Unlike other plugins that use Vue components for rendering, this plugin serves a complete HTML template directly. This approach is useful when:
+
+1. You want to integrate an existing HTML/CSS template
+2. You need to use a CSS framework with built-in JavaScript components
+3. You're creating a landing page with minimal interactive requirements
+
+#### Accessing the Plugin
+
+Navigate to `/influencer` in your browser to see the Bulma-based influencer marketing platform.
+
+#### Customizing the Template
+
+The template is defined in `src/utils/bulma-template.js`. You can modify this file to update the content, styles, or layout of the page.
+
+```javascript
+// Example: Changing the main headline
+function generateTemplate(title) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>...</head>
+      <body>
+        ...
+        <h1 class="title is-2">Your Custom Headline Here</h1>
+        ...
+      </body>
+    </html>
+  `;
+}
+```
+
+#### Adding New Pages
+
+To add additional pages with the same Bulma template:
+
+1. Add a new route in `src/app.js`:
+   ```javascript
+   app.get('/influencer/about', (req, res) => {
+     const html = generateTemplate('About Us - Influencer Platform', 'about');
+     res.send(html);
+   });
+   ```
+
+2. Update the `generateTemplate` function to handle different page types:
+   ```javascript
+   function generateTemplate(title, pageType = 'home') {
+     let content = '';
+     
+     if (pageType === 'about') {
+       content = `<section class="section">
+         <div class="container">
+           <h1 class="title is-2">About Our Platform</h1>
+           <!-- About page content -->
+         </div>
+       </section>`;
+     } else {
+       // Home page content
+     }
+     
+     return `<!DOCTYPE html>...<body>${content}</body></html>`;
+   }
+   ```
