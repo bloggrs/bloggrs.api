@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button { margin: 5px; padding: 8px 16px; }
+    pre { background: #f5f5f5; padding: 15px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Influencer Platform API Test</h1>
+  
+  <button onclick="testApi('/api/plugins/influencer-platform/test')">Test Endpoint</button>
+  <button onclick="testApi('/api/plugins/influencer-platform/brands')">Get Brands</button>
+  <button onclick="testApi('/api/plugins/influencer-platform/influencers')">Get Influencers</button>
+  <button onclick="testApi('/api/plugins/influencer-platform/campaigns')">Get Campaigns</button>
+  
+  <h2>Response:</h2>
+  <pre id="response">Click a button to test an endpoint</pre>
+  
+  <script>
+    async function testApi(endpoint) {
+      document.getElementById('response').textContent = 'Loading...';
+      
+      try {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('response').textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html> 

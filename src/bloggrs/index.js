@@ -1,182 +1,219 @@
 /**
- * Bloggrs Plugin System with Vue SFC support
+ * Plugin System Manager
  */
 const fs = require('fs');
 const path = require('path');
-const { compileVueFile } = require('../utils/vue-compiler');
+const { validatePluginComponents } = require('../utils/plugin-validator');
+const dotenv = require('dotenv');
+const pluginDbManager = require('../utils/plugin-db-manager');
 
-// Store active plugins
-const activePlugins = new Map();
-// Cache for compiled Vue components
-const componentCache = new Map();
+// Store registered plugins
+const plugins = {};
+let expressApp = null;
 
-// Load a plugin configuration
-function loadPluginConfig(pluginDir) {
-  try {
-    const configPath = path.join(__dirname, pluginDir, 'plugin.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      return {
-        ...config,
-        dir: pluginDir,
-        path: path.join(__dirname, pluginDir)
-      };
-    }
-  } catch (err) {
-    console.error(`Error loading plugin config for ${pluginDir}:`, err);
-  }
-  return null;
-}
-
-// Load all available plugins
-function discoverPlugins() {
-  const plugins = [];
-  try {
-    // Read the bloggrs directory
-    const dirs = fs.readdirSync(__dirname);
+/**
+ * Initialize all plugins
+ * @param {Object} app - Express app instance
+ * @returns {Array} Array of initialized plugins
+ */
+async function initPlugins(app) {
+  console.log('Initializing plugins...');
+  
+  // Get all directories in the plugins directory
+  const pluginsDir = __dirname;
+  const possiblePlugins = fs.readdirSync(pluginsDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name);
     
-    // Look for plugin directories (containing plugin.json)
-    for (const dir of dirs) {
-      if (dir === 'index.js') continue;
+  console.log(`Found ${possiblePlugins.length} potential plugins: ${possiblePlugins.join(', ')}`);
+  
+  const initializedPlugins = [];
+  
+  // Try to initialize each plugin
+  for (const pluginId of possiblePlugins) {
+    try {
+      // Check if plugin has an index.js file
+      const pluginPath = path.join(pluginsDir, pluginId);
+      const indexPath = path.join(pluginPath, 'index.js');
       
-      const fullPath = path.join(__dirname, dir);
-      const stats = fs.statSync(fullPath);
+      if (!fs.existsSync(indexPath)) {
+        console.log(`${pluginId} is not a valid plugin, skipping`);
+        continue;
+      }
       
-      if (stats.isDirectory()) {
-        const config = loadPluginConfig(dir);
-        if (config) {
-          plugins.push(config);
+      // Load plugin's .env file if it exists
+      const envPath = path.join(pluginPath, '.env');
+      if (fs.existsSync(envPath)) {
+        console.log(`Loading environment from ${pluginId}/.env`);
+        dotenv.config({ path: envPath });
+      }
+      
+      // Check plugin config
+      const configPath = path.join(pluginPath, 'plugin.json');
+      let pluginConfig = {};
+      
+      if (fs.existsSync(configPath)) {
+        pluginConfig = require(configPath);
+        
+        // Skip disabled plugins
+        if (pluginConfig.disabled) {
+          console.log(`Plugin ${pluginConfig.name || pluginId} is disabled, skipping`);
+          continue;
         }
       }
-    }
-  } catch (err) {
-    console.error('Error discovering plugins:', err);
-  }
-  
-  return plugins;
-}
-
-// Initialize all active plugins
-function initPlugins() {
-  const availablePlugins = discoverPlugins();
-  
-  for (const plugin of availablePlugins) {
-    if (plugin.enabled) {
-      try {
-        // Try to load the plugin's server module if it exists
-        const serverModulePath = path.join(__dirname, plugin.dir, 'server.js');
-        if (fs.existsSync(serverModulePath)) {
-          const serverModule = require(serverModulePath);
-          if (typeof serverModule.init === 'function') {
-            serverModule.init();
-          }
-        }
-        
-        activePlugins.set(plugin.id, plugin);
-        console.log(`Loaded plugin: ${plugin.name} (${plugin.id})`);
-      } catch (err) {
-        console.error(`Error initializing plugin ${plugin.name}:`, err);
+      
+      // Initialize plugin database
+      console.log(`Initializing database for plugin ${pluginId}...`);
+      await pluginDbManager.initPluginDatabase(pluginId);
+      
+      // Load plugin module
+      // Clear require cache first to ensure fresh code
+      delete require.cache[require.resolve(indexPath)];
+      const plugin = require(indexPath);
+      
+      // Check if plugin has initialize method
+      if (typeof plugin.initialize !== 'function') {
+        console.log(`Plugin ${pluginId} missing initialize method, skipping`);
+        continue;
       }
-    } else {
-      console.log(`Plugin disabled: ${plugin.name} (${plugin.id})`);
+      
+      // Initialize plugin
+      const result = await plugin.initialize(app, pluginConfig);
+      
+      if (result) {
+        console.log(`Plugin ${plugin.name || pluginId} initialized successfully`);
+        initializedPlugins.push(plugin);
+      } else {
+        console.error(`Failed to initialize plugin ${pluginId}`);
+      }
+    } catch (error) {
+      console.error(`Error initializing plugin ${pluginId}:`, error);
     }
   }
   
-  return activePlugins;
+  console.log(`Loaded ${initializedPlugins.length} active plugins`);
+  return initializedPlugins;
 }
 
-// Get a plugin by ID
-function getPlugin(id) {
-  return activePlugins.get(id);
+/**
+ * Set the Express app to use for registering routes
+ * @param {Object} app - The Express app
+ */
+function setExpressApp(app) {
+  expressApp = app;
+  
+  // If plugins are already loaded, register their routes
+  if (Object.keys(plugins).length > 0) {
+    registerAllPluginRoutes(app);
+  }
 }
 
-// Get all active plugins
-function getActivePlugins() {
-  return Array.from(activePlugins.values());
-}
-
-// Load a Vue component from a plugin
-function loadPluginComponent(plugin, componentPath) {
-  // Check if it's a .vue file
-  if (componentPath.endsWith('.vue')) {
-    const fullPath = path.join(plugin.path, componentPath);
-    
-    // Check if we've already compiled this component
-    if (componentCache.has(fullPath)) {
-      return componentCache.get(fullPath);
-    }
-    
-    // Compile the Vue file
-    const { component, styles } = compileVueFile(fullPath);
-    
-    // Cache the result
-    componentCache.set(fullPath, { component, styles });
-    return { component, styles };
+/**
+ * Register routes for all loaded plugins
+ * @param {Object} app - The Express app
+ */
+function registerAllPluginRoutes(app) {
+  if (!app || typeof app.use !== 'function') {
+    console.error('Invalid Express app provided to registerAllPluginRoutes');
+    return;
   }
   
-  // If it's a regular JS file, require it
-  const fullPath = path.join(plugin.path, componentPath);
-  try {
-    const module = require(fullPath);
-    return {
-      component: module.default || module,
-      styles: ''
-    };
-  } catch (error) {
-    console.error(`Error loading plugin component ${componentPath}:`, error);
-    return {
-      component: { template: `<div>Error loading component: ${error.message}</div>` },
-      styles: ''
-    };
-  }
-}
-
-// Get plugin component for a specific route
-function getPluginForRoute(route) {
-  for (const plugin of activePlugins.values()) {
-    if (plugin.routes && plugin.routes[route]) {
+  for (const [pluginId, plugin] of Object.entries(plugins)) {
+    if (plugin.enabled !== false && typeof plugin.registerRoutes === 'function') {
       try {
-        const componentPath = plugin.routes[route];
-        const fullPath = path.join(plugin.path, componentPath);
-        
-        // For .vue files, use the compiler
-        if (componentPath.endsWith('.vue')) {
-          console.log(`Loading Vue component from ${fullPath}`);
-          const { component, styles } = compileVueFile(fullPath);
-          
-          // Safeguard against undefined components
-          if (!component) {
-            console.error(`Component from ${fullPath} is undefined`);
-            return null;
-          }
-          
-          return {
-            plugin,
-            component,
-            styles
-          };
-        }
-        
-        // For JS files, just require them
-        const component = require(fullPath);
-        return {
-          plugin,
-          component: component.default || component,
-          styles: ''
-        };
+        plugin.registerRoutes(app);
+        console.log(`Registered API routes for plugin: ${pluginId}`);
       } catch (error) {
-        console.error(`Error loading component for route ${route}:`, error);
+        console.error(`Error registering routes for plugin ${pluginId}:`, error);
+      }
+    } else if (plugin.enabled !== false && plugin.api) {
+      // Support for the existing API handler pattern
+      try {
+        const basePath = `/api/plugins/${pluginId}`;
+        app.use(basePath, plugin.api);
+        console.log(`Registered API at ${basePath} for plugin: ${pluginId}`);
+        
+        // Log all registered routes for debugging
+        if (plugin.api.stack) {
+          plugin.api.stack.forEach(route => {
+            if (route.route) {
+              const methods = Object.keys(route.route.methods).join(', ').toUpperCase();
+              console.log(`- ${methods}: ${basePath}${route.route.path}`);
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`Error registering API for plugin ${pluginId}:`, error);
       }
     }
   }
-  return null;
 }
 
-// Register the influencer platform plugin
+/**
+ * Get a plugin by ID
+ * @param {string} id - Plugin ID
+ * @returns {Object|null} The plugin or null if not found
+ */
+function getPlugin(id) {
+  return plugins[id] || null;
+}
+
+/**
+ * Get all active plugins
+ * @returns {Array} Array of active plugins
+ */
+function getActivePlugins() {
+  return Object.values(plugins).filter(plugin => plugin.enabled !== false);
+}
+
+/**
+ * Find the appropriate plugin for a given route
+ * @param {string} route - The route path
+ * @returns {Object|null} The matching plugin or null if none matches
+ */
+function getPluginForRoute(route) {
+  if (!route) return null;
+  
+  // Normalize the route
+  const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
+  
+  console.log(`Finding plugin for route: ${normalizedRoute}`);
+  
+  // Find a plugin with a matching route
+  for (const [pluginId, plugin] of Object.entries(plugins)) {
+    if (!plugin.routes) {
+      continue;
+    }
+    
+    // Direct exact match check
+    if (plugin.routes[normalizedRoute]) {
+      console.log(`Found exact route match in plugin: ${pluginId}`);
+      return plugin;
+    }
+    
+    // For dynamic routes with parameters (e.g., /influencers/:id)
+    for (const pluginRoute of Object.keys(plugin.routes)) {
+      if (pluginRoute.includes(':')) {
+        const pattern = pluginRoute.replace(/:[^\/]+/g, '([^\/]+)');
+        const regex = new RegExp(`^${pattern}$`);
+        
+        if (regex.test(normalizedRoute)) {
+          console.log(`Found dynamic route match in plugin ${pluginId}: ${pluginRoute} matches ${normalizedRoute}`);
+          return plugin;
+        }
+      }
+    }
+  }
+  
+  console.log(`No plugin found for route: ${normalizedRoute}`);
+  return null;
+}
 
 module.exports = {
   initPlugins,
   getPlugin,
   getActivePlugins,
-  getPluginForRoute
-}; 
+  getPluginForRoute,
+  setExpressApp,  // Export the new method
+  plugins // Export the plugins object for testing/debugging
+};

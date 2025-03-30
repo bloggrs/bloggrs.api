@@ -3,7 +3,19 @@
  */
 const pluginConfig = require('./plugin.json');
 
-// Helper function to ensure CSS is loaded on the client
+/**
+ * Initialize the client-side functionality
+ */
+function init() {
+  ensureCssLoaded();
+  setupEventHandlers();
+  
+  console.log('Influencer Platform client initialized');
+}
+
+/**
+ * Helper function to ensure CSS is loaded on the client
+ */
 function ensureCssLoaded() {
   if (typeof document === 'undefined') return;
   
@@ -34,53 +46,79 @@ function ensureCssLoaded() {
 }
 
 /**
- * Initialize the client-side portion of the influencer platform
- * @param {Object} options - Client initialization options
- * @param {Element} options.el - DOM element to mount the app
- * @param {Object} options.app - Vue app instance
+ * Set up client-side event handlers
  */
-function init(options = {}) {
-  const { el, app } = options;
+function setupEventHandlers() {
+  if (typeof document === 'undefined') return;
   
-  if (!el || !app) {
-    console.error('Missing required parameters for influencer platform client init');
-    return;
-  }
-  
-  // Ensure CSS frameworks are loaded
-  ensureCssLoaded();
-  
-  // Initialize any client-side specific functionality
-  document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Bulma's hamburger menu
-    const $navbarBurgers = Array.prototype.slice.call(
-      document.querySelectorAll('.navbar-burger'), 
-      0
-    );
+  // Setup navbar burger menu toggle
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get all "navbar-burger" elements
+    const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
     
-    if ($navbarBurgers.length > 0) {
-      $navbarBurgers.forEach(el => {
-        el.addEventListener('click', () => {
-          // Get the target from the "data-target" attribute
-          const target = el.dataset.target;
-          const $target = document.getElementById(target);
+    // Add a click event on each of them
+    $navbarBurgers.forEach(el => {
+      el.addEventListener('click', () => {
+        // Get the target from the "data-target" attribute
+        const target = el.dataset.target;
+        const $target = document.getElementById(target);
+        
+        // Toggle the "is-active" class on both the "navbar-burger" and the "navbar-menu"
+        el.classList.toggle('is-active');
+        $target?.classList.toggle('is-active');
+      });
+    });
+  });
+  
+  // Setup tabs if they exist
+  document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tabs li');
+    const tabContentBoxes = document.querySelectorAll('.tab-content');
+    
+    if (tabs.length > 0) {
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(item => item.classList.remove('is-active'));
+          tab.classList.add('is-active');
           
-          // Toggle the "is-active" class on both the burger and menu
-          el.classList.toggle('is-active');
-          $target?.classList.toggle('is-active');
+          const target = tab.dataset.target;
+          
+          tabContentBoxes.forEach(box => {
+            if (box.getAttribute('id') === target) {
+              box.classList.remove('is-hidden');
+            } else {
+              box.classList.add('is-hidden');
+            }
+          });
         });
       });
     }
-    
-    console.log('Influencer platform client-side initialization complete');
   });
-  
-  return {
-    app
-  };
 }
 
-// For CommonJS environments
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { init };
+// Export the client-side functions
+module.exports = {
+  init
+};
+
+// Auto-initialize when loaded directly in the browser
+if (typeof window !== 'undefined') {
+  init();
+}
+
+// Client entry point for Vue hydration
+import { createApp } from 'vue';
+import App from './App.vue';
+
+// Create and mount the app
+function mountApp() {
+  const app = createApp(App);
+  app.mount('#app');
+}
+
+// Wait for DOM content to be loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', mountApp);
+} else {
+  mountApp();
 } 

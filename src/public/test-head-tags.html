@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Head Tags Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    pre { background: #f5f5f5; padding: 15px; border-radius: 4px; }
+    button { margin: 5px; padding: 8px 16px; }
+  </style>
+</head>
+<body>
+  <h1>Head Tags Test</h1>
+  
+  <button onclick="checkHeadTags()">Check Head Tags</button>
+  
+  <h2>Plugin Head Tags:</h2>
+  <pre id="headTags">Click the button to check head tags</pre>
+  
+  <script>
+    async function checkHeadTags() {
+      try {
+        const response = await fetch('/debug/plugins/head-tags');
+        const data = await response.json();
+        document.getElementById('headTags').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('headTags').textContent = `Error: ${error.message}`;
+      }
+    }
+  </script>
+</body>
+</html> 

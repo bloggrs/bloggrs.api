@@ -1,23 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Blog with Vue SSR</title>
+    <title>Influencer Platform</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!--head-resources-->
+    <link rel="preload" href="https://unpkg.com/vue@3/dist/vue.global.js" as="script">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" as="style">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
       body {
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 20px;
       }
+      .app-loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #f5f5f5;
+      }
+      .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #3273dc;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .error-container {
+        display: none;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #fff3cd;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
     </style>
     <!--css-outlet-->
     <!--plugin-info-->
+    <!--HEAD-->
+    <script>
+      // Global error handler
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('Global error:', message, source, lineno, colno, error);
+        const errorEl = document.createElement('div');
+        errorEl.className = 'notification is-danger';
+        errorEl.style.margin = '20px';
+        errorEl.style.padding = '20px';
+        errorEl.innerHTML = `
+          <button class="delete" onclick="this.parentNode.remove()"></button>
+          <h3 class="title is-5">JavaScript Error</h3>
+          <p><strong>Message:</strong> ${message}</p>
+          <p><strong>Source:</strong> ${source}</p>
+          <p><strong>Line:</strong> ${lineno}, <strong>Column:</strong> ${colno}</p>
+          ${error && error.stack ? `<pre style="max-height: 200px; overflow-y: auto;">${error.stack}</pre>` : ''}
+        `;
+        document.body.insertBefore(errorEl, document.body.firstChild);
+        return true;
+      };
+      
+      // Promise rejection handler
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled Promise Rejection:', event.reason);
+      });
+    </script>
+    <script>
+      // Fetch API polyfill for older browsers
+      if (!window.fetch) {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/whatwg-fetch@3.6.2/dist/fetch.umd.js"><\/script>');
+      }
+    </script>
   </head>
   <body>
-    <div id="app"><!--ssr-outlet--></div>
-    <script src="/js/app.js"></script>
+    <!-- Loading indicator -->
+    <div class="app-loading" id="loading">
+      <div class="loader"></div>
+      <p>Loading application...</p>
+    </div>
+    
+    <!-- Error container -->
+    <div class="error-container" id="error-container">
+      <h2>Application Error</h2>
+      <p id="error-message">The application failed to load correctly.</p>
+      <button onclick="window.location.reload()" class="button is-primary mt-3">Reload Page</button>
+    </div>
+    
+    <div id="app">
+      <!-- APP_HTML -->
+    </div>
+    
+    <!-- IMPORTANT: This is where serialized data from the server gets injected -->
+    <!-- SERIALIZED_DATA -->
+    
+    <!-- Error handling -->
+    <script>
+      // Set a timeout to show error if app doesn't load
+      const loadTimeout = setTimeout(function() {
+        const loadingElement = document.getElementById('loading');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        
+        if (loadingElement && errorContainer && errorMessage) {
+          loadingElement.style.display = 'none';
+          errorContainer.style.display = 'block';
+          errorMessage.innerText = 'The application did not load within the expected time. This might be due to network issues or server problems.';
+        }
+      }, 10000);
+      
+      // Function to mark app as loaded
+      window.markAppAsLoaded = function() {
+        clearTimeout(loadTimeout);
+        const loadingElement = document.getElementById('loading');
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+      };
+      
+      // Global error handler
+      window.addEventListener('error', function(event) {
+        console.error('Global error:', event.error || event.message);
+        
+        // Show error container with message
+        const loadingElement = document.getElementById('loading');
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        
+        if (loadingElement && errorContainer && errorMessage) {
+          loadingElement.style.display = 'none';
+          errorContainer.style.display = 'block';
+          errorMessage.innerText = 'JavaScript error: ' + (event.error ? event.error.message : event.message);
+        }
+        
+        return false;
+      });
+      
+      // Handle unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('Unhandled promise rejection:', event.reason);
+        
+        // Show error message
+        const errorContainer = document.getElementById('error-container');
+        const errorMessage = document.getElementById('error-message');
+        
+        if (errorContainer && errorMessage) {
+          errorContainer.style.display = 'block';
+          errorMessage.innerText = 'Promise error: ' + (event.reason ? event.reason.message : 'Unknown error');
+        }
+        
+        return false;
+      });
+      
+      // Add data validation
+      window.validateComponentData = function() {
+        // Check if COMPONENT_DATA exists
+        if (!window.COMPONENT_DATA) {
+          console.error('Component data is missing!');
+          const errorContainer = document.getElementById('error-container');
+          const errorMessage = document.getElementById('error-message');
+          
+          if (errorContainer && errorMessage) {
+            errorContainer.style.display = 'block';
+            errorMessage.innerText = 'Component data is missing from the template. Server-side rendering failed.';
+          }
+          
+          return false;
+        }
+        
+        console.log('Component data validation passed');
+        return true;
+      };
+      
+      // Immediately validate after serialized data is injected
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, validating component data');
+        
+        if (window.COMPONENT_DATA) {
+          console.log('COMPONENT_DATA is available');
+          console.log('Template length:', window.COMPONENT_DATA.template ? window.COMPONENT_DATA.template.length : 0);
+          console.log('Methods:', Object.keys(window.COMPONENT_DATA.methods || {}));
+        } else {
+          console.error('COMPONENT_DATA is missing!');
+        }
+        
+        if (window.INITIAL_DATA) {
+          console.log('INITIAL_DATA is available');
+          console.log('Keys:', Object.keys(window.INITIAL_DATA));
+        } else {
+          console.warn('INITIAL_DATA is missing!');
+        }
+      });
+    </script>
+    <!-- Load Vue -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Client bootstrap scripts -->
+    <!-- CLIENT_BOOTSTRAP -->
+    <script>
+      // Fallback script to load Vue if it hasn't loaded already
+      setTimeout(function() {
+        if (typeof Vue === 'undefined') {
+          console.error('Vue failed to load, trying alternative CDN');
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.min.js';
+          script.onload = function() {
+            console.log('Vue loaded from alternative CDN');
+            if (window.initVueApp && typeof window.initVueApp === 'function') {
+              window.initVueApp();
+            }
+          };
+          document.head.appendChild(script);
+        }
+      }, 3000);
+    </script>
     <!--body-end-resources-->
+    <!-- Simple script to initialize basic features -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize navbar burger menu
+        const $navbarBurgers = Array.prototype.slice.call(
+          document.querySelectorAll('.navbar-burger'), 
+          0
+        );
+        
+        if ($navbarBurgers.length > 0) {
+          $navbarBurgers.forEach(el => {
+            el.addEventListener('click', () => {
+              const target = el.dataset.target;
+              const $target = document.getElementById(target);
+              el.classList.toggle('is-active');
+              $target?.classList.toggle('is-active');
+            });
+          });
+        }
+        
+        // Initialize other interactive elements
+        initializeModalClosers();
+        initializeDropdowns();
+      });
+      
+      function initializeModalClosers() {
+        // Get all elements with class "modal-close" or data-close attribute
+        const modalClosers = document.querySelectorAll('.modal-close, .modal-background, [data-close="modal"]');
+        
+        modalClosers.forEach(closer => {
+          closer.addEventListener('click', function() {
+            // Find the parent modal
+            const modal = this.closest('.modal');
+            if (modal) {
+              modal.classList.remove('is-active');
+            }
+          });
+        });
+      }
+      
+      function initializeDropdowns() {
+        const dropdowns = document.querySelectorAll('.dropdown');
+        
+        dropdowns.forEach(dropdown => {
+          const trigger = dropdown.querySelector('.dropdown-trigger');
+          
+          if (trigger) {
+            trigger.addEventListener('click', function(event) {
+              event.stopPropagation();
+              dropdown.classList.toggle('is-active');
+            });
+          }
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function() {
+          dropdowns.forEach(dropdown => {
+            dropdown.classList.remove('is-active');
+          });
+        });
+      }
+    </script>
+    <!-- Add a simple fallback error message that will be shown if there are issues -->
+    <script>
+      // Check if the main content was rendered
+      document.addEventListener('DOMContentLoaded', function() {
+        const appElement = document.getElementById('app');
+        if (appElement && appElement.children.length === 0) {
+          appElement.innerHTML = `
+            <div class="section">
+              <div class="container">
+                <div class="notification is-warning">
+                  <h3 class="title is-4">Loading Content Failed</h3>
+                  <p>Unable to load the content for this page. Please check the browser console for errors.</p>
+                  <button class="button is-primary mt-3" onclick="window.location.reload()">Try Again</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      });
+    </script>
+    <!-- Loading fallback - will be replaced by Vue app if successful -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          // If the app still has the loading indicator after 5 seconds,
+          // the Vue app probably failed to load or mount
+          const appEl = document.getElementById('app');
+          if (appEl && (!appEl.childElementCount || appEl.querySelector('.loading-indicator'))) {
+            // Add a message about the loading failure
+            appEl.innerHTML = `
+              <div class="section">
+                <div class="container">
+                  <div class="notification is-warning">
+                    <h3 class="title is-4">Loading Failed</h3>
+                    <p>The application is taking too long to load. This might be due to:</p>
+                    <ul>
+                      <li>Network connectivity issues</li>
+                      <li>Server-side errors</li>
+                      <li>JavaScript errors in the application</li>
+                    </ul>
+                    <div class="buttons mt-4">
+                      <button class="button is-primary" onclick="window.location.reload()">
+                        Reload Page
+                      </button>
+                      <button class="button is-info" onclick="window.loadTest()">
+                        Load Test Data
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+        }, 5000);
+      });
+      
+      // Add a test data loader function
+      window.loadTest = function() {
+        const appEl = document.getElementById('app');
+        appEl.innerHTML = `
+          <div class="section">
+            <div class="container">
+              <h1 class="title">Influencers</h1>
+              <div class="columns is-multiline">
+                <div class="column is-3">
+                  <div class="card">
+                    <div class="card-image">
+                      <figure class="image is-4by3">
+                        <img src="https://via.placeholder.com/300?text=AlexMorgan" alt="Alex Morgan">
+                      </figure>
+                      <span class="tag is-primary is-light" style="position: absolute; top: 10px; right: 10px;">
+                        <span class="icon"><i class="fas fa-star"></i></span>
+                        <span>Featured</span>
+                      </span>
+                    </div>
+                    <div class="card-content">
+                      <p class="title is-4">alexstyle</p>
+                      <p class="subtitle is-6">Alex Morgan</p>
+                      <div class="content">
+                        <p>Fashion & Style</p>
+                        <div>
+                          <span>850K followers</span> |
+                          <span>3.2% engagement</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="column is-3">
+                  <div class="card">
+                    <div class="card-image">
+                      <figure class="image is-4by3">
+                        <img src="https://via.placeholder.com/300?text=JamieLee" alt="Jamie Lee">
+                      </figure>
+                      <span class="tag is-success is-light" style="position: absolute; top: 10px; right: 10px;">
+                        <span class="icon"><i class="fas fa-check-circle"></i></span>
+                        <span>Verified</span>
+                      </span>
+                    </div>
+                    <div class="card-content">
+                      <p class="title is-4">jamiebeauty</p>
+                      <p class="subtitle is-6">Jamie Lee</p>
+                      <div class="content">
+                        <p>Beauty & Makeup</p>
+                        <div>
+                          <span>1.2M followers</span> |
+                          <span>4.5% engagement</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+    </script>
+    <!-- Add the debug panel script for troubleshooting -->
+    <script src="/js/debug-panel.js"></script>
+    <!-- Add this to the CLIENT_BOOTSTRAP section -->
+    <script src="/js/route-tester.js"></script>
   </body>
 </html> 

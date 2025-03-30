@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1",
+    "name": "Alex Morgan",
+    "handle": "alexstyle",
+    "image": "https://via.placeholder.com/300?text=AlexMorgan",
+    "bio": "Fashion enthusiast sharing daily outfit inspiration.",
+    "category": "Fashion & Style",
+    "followers": 850000,
+    "engagementRate": 3.2,
+    "posts": 457,
+    "verified": true,
+    "featured": true,
+    "socialProfiles": [
+      {
+        "platform": "Instagram",
+        "handle": "alexstyle",
+        "url": "https://instagram.com/alexstyle",
+        "followers": 850000
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "name": "Jamie Lee",
+    "handle": "jamiebeauty",
+    "image": "https://via.placeholder.com/300?text=JamieLee", 
+    "bio": "Beauty guru with a passion for skincare and makeup tips.",
+    "category": "Beauty & Makeup",
+    "followers": 1200000,
+    "engagementRate": 4.5,
+    "posts": 612,
+    "verified": true,
+    "featured": false,
+    "socialProfiles": [
+      {
+        "platform": "Instagram",
+        "handle": "jamiebeauty",
+        "url": "https://instagram.com/jamiebeauty",
+        "followers": 1200000
+      }
+    ]
+  }
+] 

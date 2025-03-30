@@ -14,7 +14,7 @@ function compileVueFile(filePath) {
   // Extract and evaluate the script content
   let component = {};
   if (parsed.script) {
-    // Create a temporary script content that returns the component definition
+    // Create a temporary script content that returns the componentsdefinition
     const scriptContent = parsed.script.content
       .replace('module.exports =', 'return')
       .replace('export default', 'return');

@@ -1,17 +1,70 @@
 {
   "id": "influencer-platform",
-  "name": "influencer-platform",
+  "name": "Instagram Influencer Platform",
   "displayName": "Instagram Influencer Platform", 
   "version": "1.0.0",
-  "description": "A modern influencer marketing platform built with Bulma CSS",
-  "author": "Bloggrs Team",
+  "description": "A platform for managing influencer marketing campaigns",
+  "author": "Your Name",
   "tags": ["marketing", "influencer", "bulma", "social"],
   "enabled": true,
   "priority": 10,
-  "routes": {
-    "/": "App.vue"
-  },
+  "routes": [
+    { 
+      "path": "/", 
+      "component": "App.vue",
+      "dataProvider": "getHomeData" 
+    },
+    { 
+      "path": "/influencers", 
+      "component": "views/influencers/InfluencerList.vue",
+      "dataProvider": "getInfluencersData" 
+    },
+    { 
+      "path": "/influencers/:id", 
+      "component": "views/influencers/InfluencerDetail.vue",
+      "dataProvider": "getInfluencerDetailData" 
+    },
+    { 
+      "path": "/brands", 
+      "component": "views/brands/BrandList.vue",
+      "dataProvider": "getBrandsData" 
+    },
+    { 
+      "path": "/brands/:id", 
+      "component": "views/brands/BrandDetail.vue",
+      "dataProvider": "getBrandDetailData" 
+    },
+    { 
+      "path": "/campaigns", 
+      "component": "views/campaigns/CampaignList.vue",
+      "dataProvider": "getCampaignsData" 
+    },
+    { 
+      "path": "/campaigns/:id", 
+      "component": "views/campaigns/CampaignDetail.vue",
+      "dataProvider": "getCampaignDetailData" 
+    },
+    { 
+      "path": "/settings", 
+      "component": "views/settings/Settings.vue",
+      "dataProvider": "getSettingsData" 
+    },
+    { 
+      "path": "/debug/router",
+      "component": "debug/RouterDebug.vue",
+      "dataProvider": null
+    },
+    {
+      "path": "/debug/test",
+      "component": "views/debug/TestComponent.vue",
+      "dataProvider": "getInfluencersData"
+    }
+  ],
   "override": true,
+  "headTags": [
+    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css\">",
+    "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css\">"
+  ],
   "resources": {
     "styles": [
       {
@@ -27,8 +80,28 @@
     ],
     "scripts": [
       {
-        "type": "inline",
-        "content": "document.addEventListener('DOMContentLoaded', function() { const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0); $navbarBurgers.forEach(el => { el.addEventListener('click', () => { const target = el.dataset.target; const $target = document.getElementById(target); el.classList.toggle('is-active'); $target?.classList.toggle('is-active'); }); }); });",
+        "type": "cdn",
+        "src": "https://unpkg.com/vue@3/dist/vue.global.prod.js",
+        "position": "head"
+      },
+      {
+        "type": "local",
+        "src": "/js/app.js",
+        "position": "bodyEnd"
+      },
+      {
+        "type": "local",
+        "src": "/js/vue-client.js",
+        "position": "bodyEnd"
+      },
+      {
+        "type": "local",
+        "src": "/js/influencer-list.js",
+        "position": "bodyEnd"
+      },
+      {
+        "type": "local",
+        "src": "/js/debug-panel.js",
         "position": "bodyEnd"
       }
     ],
@@ -42,5 +115,65 @@
         "content": "#3273dc"
       }
     ]
+  },
+  "database": {
+    "requiresMigration": true,
+    "seed": true,
+    "useDbPush": true
+  },
+  "navigation": [
+    {
+      "label": "Home",
+      "path": "/",
+      "icon": "fas fa-home"
+    },
+    {
+      "label": "Influencers",
+      "path": "/influencers",
+      "icon": "fas fa-users"
+    },
+    {
+      "label": "Brands",
+      "path": "/brands",
+      "icon": "fas fa-building"
+    },
+    {
+      "label": "Campaigns",
+      "path": "/campaigns",
+      "icon": "fas fa-bullhorn"
+    },
+    {
+      "label": "Sponsorships",
+      "path": "/sponsorships",
+      "icon": "fas fa-handshake"
+    },
+    {
+      "label": "Analytics",
+      "path": "/analytics",
+      "icon": "fas fa-chart-bar"
+    },
+    {
+      "label": "Settings",
+      "path": "/settings",
+      "icon": "fas fa-cog"
+    }
+  ],
+  "permissions": [
+    "view:influencers",
+    "create:influencers",
+    "edit:influencers",
+    "delete:influencers",
+    "view:brands",
+    "create:brands",
+    "edit:brands",
+    "delete:brands",
+    "view:campaigns",
+    "create:campaigns",
+    "edit:campaigns",
+    "delete:campaigns"
+  ],
+  "apiCors": {
+    "enabled": true,
+    "origins": ["*"]
   }
 }

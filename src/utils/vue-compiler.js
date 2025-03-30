@@ -1,87 +1,93 @@
 const fs = require('fs');
 const path = require('path');
-const compiler = require('@vue/compiler-sfc');
-const Vue = require('vue');
 
-// Compile a Vue SFC file for server-side rendering
+/**
+ * Compile a Vue single-file component
+ * @param {string} filePath - Path to the Vue file
+ * @returns {Object|null} - Compiled component or null if error
+ */
 function compileVueFile(filePath) {
   try {
-    // Read the file
-    const source = fs.readFileSync(filePath, 'utf-8');
+    console.log(`Compiling Vue file: ${filePath}`);
     
-    // Parse the SFC
-    const { descriptor } = compiler.parse(source, { filename: filePath });
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
+      return null;
+    }
     
-    // Extract the template content
-    const template = descriptor.template ? descriptor.template.content : '';
+    const source = fs.readFileSync(filePath, 'utf8');
+    console.log(`File content length: ${source.length} characters`);
     
-    // Extract script content
-    let scriptContent = '';
-    let component = null;
+    // Extract template, script and style
+    const templateMatch = source.match(/<template>([\s\S]*?)<\/template>/i);
+    const scriptMatch = source.match(/<script>([\s\S]*?)<\/script>/i);
     
-    if (descriptor.script) {
-      scriptContent = descriptor.script.content.trim();
-      
-      // First, try a direct require approach for native modules
-      const moduleDir = path.dirname(filePath);
-      const tempFilePath = path.join(
-        moduleDir, 
-        `__temp_${path.basename(filePath, '.vue')}.js`
-      );
-      
-      // Create a temporary JS file with the script content
-      const jsContent = scriptContent
-        .replace(/export\s+default/, 'module.exports =')
-        .replace(/import\s+([^{]*?)\s+from\s+(['"])(.*?)['"]/g, 
-                'const $1 = require($2$3$2)');
-      
-      fs.writeFileSync(tempFilePath, jsContent);
-      
+    if (!templateMatch) {
+      console.error(`No template found in ${filePath}`);
+    }
+    
+    if (!scriptMatch) {
+      console.error(`No script found in ${filePath}`);
+    }
+    
+    // Basic component structure even if parsing fails
+    const component = {
+      template: templateMatch ? templateMatch[1].trim() : '<div>Template missing</div>',
+      data: function() { return {}; },
+      methods: {},
+      computed: {}
+    };
+    
+    // Try to extract more component data if script is available
+    if (scriptMatch) {
       try {
-        // Require the temporary file
-        delete require.cache[require.resolve(tempFilePath)]; // Clear cache
-        component = require(tempFilePath);
-        fs.unlinkSync(tempFilePath); // Clean up
-      } catch (err) {
-        console.error('Error requiring component:', err);
-        // Clean up temp file
-        if (fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-        }
+        // Simple extraction - this is not a full JS parser but works for basic components
+        // Extract the export default ... part
+        const exportMatch = script.match(/export\s+default\s*(\{[\s\S]*\})/);
         
-        // Fallback to the old method
-        const tempModule = { exports: {} };
-        const fnBody = scriptContent
-          .replace('export default', 'tempModule.exports =')
-          .replace('module.exports =', 'tempModule.exports =');
-        
-        try {
-          const fn = new Function('tempModule', 'require', fnBody);
-          fn(tempModule, require);
-          component = tempModule.exports;
-        } catch (error) {
-          console.error('Error evaluating script in Vue component:', error);
-          component = {};
+        if (exportMatch) {
+          let exportScript = exportMatch[1];
+          
+          // Convert the script to be evaluable
+          exportScript = exportScript
+            .replace(/data\(\)\s*\{/g, 'data: function() {')
+            .replace(/methods\s*:/g, 'methods:')
+            .replace(/computed\s*:/g, 'computed:');
+          
+          // Use indirect eval to evaluate in global scope
+          const componentObj = (0, eval)(`(${exportScript})`);
+          
+          // Merge into component
+          component = {
+            ...component,
+            ...componentObj,
+            template // Keep template from the file
+          };
+          
+          console.log(`[Vue Compiler] Compiled component: ${Object.keys(component).join(', ')}`);
+        } else {
+          console.warn(`[Vue Compiler] Could not extract export default from ${filePath}`);
         }
+      } catch (error) {
+        console.error(`[Vue Compiler] Error parsing script in ${filePath}:`, error);
+        // Still return the template, even if the script fails
       }
     }
     
-    // Add the template to the component
-    if (template && component) {
-      component.template = template;
-    }
-    
-    // Extract styles
-    const styles = descriptor.styles.map(style => style.content).join('\n');
-    
-    return {
-      component,
-      styles
-    };
+    console.log(`Compiled component keys: ${Object.keys(component).join(', ')}`);
+    return component;
   } catch (error) {
     console.error(`Error compiling Vue file ${filePath}:`, error);
-    return { component: {}, styles: '' };
+    // Return a minimal component that won't cause errors
+    return {
+      template: '<div>Error loading component</div>',
+      data: function() { return {}; },
+      methods: {},
+      computed: {}
+    };
   }
 }
 
-module.exports = { compileVueFile };
+module.exports = {
+  compileVueFile
+};
