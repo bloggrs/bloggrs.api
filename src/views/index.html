@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+    <!-- IMPORTANT: This is where serialized data from the server gets injected -->
+    <!-- SERIALIZED_DATA -->
+
   <head>
     <title>Influencer Platform</title>
     <meta charset="UTF-8">
@@ -9,6 +12,7 @@
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" as="style">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -101,8 +105,6 @@
       <!-- APP_HTML -->
     </div>
     
-    <!-- IMPORTANT: This is where serialized data from the server gets injected -->
-    <!-- SERIALIZED_DATA -->
     
     <!-- Error handling -->
     <script>
@@ -206,6 +208,44 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <!-- Client bootstrap scripts -->
     <!-- CLIENT_BOOTSTRAP -->
+    <script>
+      // Ensure critical computed properties are always available
+      document.addEventListener('DOMContentLoaded', function() {
+        // Wait a short time to make sure Vue has started loading
+        setTimeout(function() {
+          // Check if COMPONENT_DATA exists but is missing the computed property
+          if (window.COMPONENT_DATA && (!window.COMPONENT_DATA.computed || !window.COMPONENT_DATA.computed.filteredInfluencers)) {
+            console.log('Adding missing filteredInfluencers computed property');
+            
+            // Make sure computed exists
+            if (!window.COMPONENT_DATA.computed) {
+              window.COMPONENT_DATA.computed = {};
+            }
+            
+            // Add the missing computed property
+            window.COMPONENT_DATA.computed.filteredInfluencers = function() {
+              const influencers = this.influencers || [];
+              
+              if (!this.searchQuery) {
+                return influencers;
+              }
+              
+              const query = this.searchQuery.toLowerCase();
+              return influencers.filter(influencer => {
+                return (
+                  (influencer.name && influencer.name.toLowerCase().includes(query)) ||
+                  (influencer.handle && influencer.handle.toLowerCase().includes(query)) ||
+                  (influencer.bio && influencer.bio.toLowerCase().includes(query)) ||
+                  (influencer.categories && influencer.categories.some(category => 
+                    category.name && category.name.toLowerCase().includes(query)
+                  ))
+                );
+              });
+            };
+          }
+        }, 100);
+      });
+    </script>
     <script>
       // Fallback script to load Vue if it hasn't loaded already
       setTimeout(function() {

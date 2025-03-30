@@ -127,8 +127,8 @@ export default {
     return {
       searchQuery: '',
       error: null,
-      isLoading: false
-      // Server provides influencers through initialData
+      isLoading: false,
+      influencers: [] // Default empty array
     };
   },
   
@@ -144,12 +144,12 @@ export default {
       const query = this.searchQuery.toLowerCase();
       return influencers.filter(influencer => {
         return (
-          influencer.name.toLowerCase().includes(query) ||
-          influencer.handle.toLowerCase().includes(query) ||
-          influencer.bio?.toLowerCase().includes(query) ||
-          influencer.categories?.some(category => 
-            category.name.toLowerCase().includes(query)
-          )
+          (influencer.name && influencer.name.toLowerCase().includes(query)) ||
+          (influencer.handle && influencer.handle.toLowerCase().includes(query)) ||
+          (influencer.bio && influencer.bio.toLowerCase().includes(query)) ||
+          (influencer.categories && influencer.categories.some(category => 
+            category.name && category.name.toLowerCase().includes(query)
+          ))
         );
       });
     }
@@ -157,6 +157,7 @@ export default {
   
   methods: {
     formatNumber(num) {
+      if (num === undefined || num === null) return '0';
       if (num >= 1000000) {
         return (num / 1000000).toFixed(1) + 'M';
       } else if (num >= 1000) {
@@ -168,7 +169,19 @@ export default {
   
   mounted() {
     console.log('[InfluencerList] Component mounted');
-    console.log('[InfluencerList] Server provided influencers:', this.influencers?.length || 0);
+    
+    // Copy influencers from initialData if needed
+    if (!this.influencers || this.influencers.length === 0) {
+      if (window.INITIAL_DATA && window.INITIAL_DATA.influencers) {
+        this.influencers = window.INITIAL_DATA.influencers;
+        console.log('[InfluencerList] Loaded influencers from INITIAL_DATA:', this.influencers.length);
+      } else {
+        console.warn('[InfluencerList] No influencers data available');
+        this.error = 'Failed to load influencer data';
+      }
+    }
+    
+    console.log('[InfluencerList] Current influencers count:', this.influencers?.length || 0);
   }
 };
 </script>

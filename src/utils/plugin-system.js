@@ -372,15 +372,25 @@ class PluginSystem {
               .replace(/computed\s*:/g, '"computed":')
               .replace(/mounted\s*\(\)\s*\{/g, '"mounted": function() {');
             
-            // Evaluate the script object
-            const componentObj = eval(`(${scriptObj})`);
-            
-            // Merge with compiled component - don't override data
-            Object.keys(componentObj).forEach(key => {
-              if (key !== 'data') {
-                compiledComponent[key] = componentObj[key];
-              }
-            });
+            try {
+              // Evaluate the script object
+              const componentObj = eval(`(${scriptObj})`);
+              
+              // Merge with compiled component - don't override data
+              Object.keys(componentObj).forEach(key => {
+                if (key !== 'data') {
+                  compiledComponent[key] = componentObj[key];
+                }
+              });
+              
+              console.log(`[Plugin System] Extracted from component:`, {
+                methods: Object.keys(compiledComponent.methods || {}),
+                computed: Object.keys(compiledComponent.computed || {})
+              });
+            } catch (scriptError) {
+              console.error(`[Plugin System] Error parsing component script: ${scriptError.message}`);
+              // Continue with the compilation even if script parsing fails
+            }
           }
         } catch (scriptError) {
           console.error(`[Plugin System] Error parsing component script: ${scriptError.message}`);
@@ -483,104 +493,4 @@ class PluginSystem {
     const serializedData = `
       <script>
         window.COMPONENT_DATA = {
-          template: \`${fallbackHTML.replace(/`/g, '\\`')}\`,
-          methods: {},
-          computed: {}
-        };
-        window.INITIAL_DATA = { error: "${errorMessage.replace(/"/g, '\\"')}" };
-        window.ROUTE_PARAMS = {};
-        window.CURRENT_ROUTE = "${req.path}";
-        window.PLUGIN_ID = "system";
-      </script>
-    `;
-    
-    try {
-      // Read the HTML template
-      const templatePath = path.join(__dirname, '../views/index.html');
-      if (!fs.existsSync(templatePath)) {
-        // If template is missing, send a basic HTML response
-        return res.send(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Error</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-          </head>
-          <body>
-            ${fallbackHTML}
-          </body>
-          </html>
-        `);
-      }
-      
-      let template = fs.readFileSync(templatePath, 'utf8');
-      
-      // Replace placeholders
-      template = template
-        .replace('<!-- APP_HTML -->', fallbackHTML)
-        .replace('<!-- HEAD_TAGS -->', '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">')
-        .replace('<!-- SERIALIZED_DATA -->', serializedData)
-        .replace('<!-- CLIENT_BOOTSTRAP -->', `
-          <script src="/js/vue-client.js"></script>
-          <script src="/js/debug-panel.js"></script>
-        `);
-      
-      // Send the response
-      res.send(template);
-    } catch (error) {
-      console.error('[Plugin System] Error in renderFallback:', error);
-      res.status(500).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Critical Error</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .error { background-color: #fff3cd; padding: 20px; border-radius: 5px; }
-          </style>
-        </head>
-        <body>
-          <div class="error">
-            <h2>Critical Error</h2>
-            <p>${errorMessage}</p>
-            <p>Additional error: ${error.message}</p>
-            <p><a href="/">Go to home page</a></p>
-          </div>
-        </body>
-        </html>
-      `);
-    }
-  }
-  
-  /**
-   * List contents of a directory for debugging
-   * @param {string} dir - Directory to list
-   * @returns {Promise<Array>} Directory contents
-   */
-  async listDirectory(dir) {
-    try {
-      const files = await fs.promises.readdir(dir, { withFileTypes: true });
-      
-      const result = [];
-      for (const file of files) {
-        const stats = {
-          name: file.name,
-          isDir: file.isDirectory()
-        };
-        
-        if (stats.isDir) {
-          stats.contents = await this.listDirectory(path.join(dir, file.name));
-        }
-        
-        result.push(stats);
-      }
-      
-      return result;
-    } catch (error) {
-      console.error(`[Plugin System] Error listing directory ${dir}:`, error);
-      return [];
-    }
-  }
-}
-
-module.exports = { PluginSystem }; 
+          template: \`${fallbackHTML.replace(/`
