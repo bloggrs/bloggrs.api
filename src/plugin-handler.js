@@ -296,6 +296,21 @@ function generateWelcomePage(errorMessage = null) {
         </section>
       ` : ''}
 
+      <!-- New Plugin List Section -->
+      <section class="section">
+        <div class="container">
+          <h2 class="title is-3">
+            <span class="icon-text">
+              <span class="icon has-text-info">
+                <i class="fas fa-puzzle-piece"></i>
+              </span>
+              <span>Installed Plugins</span>
+            </span>
+          </h2>
+          ${getPluginList()}
+        </div>
+      </section>
+
       <section class="section">
         <div class="container">
           <div class="columns">
@@ -668,6 +683,57 @@ function extractParams(pattern, path) {
   });
   
   return params;
+}
+
+// Add this new helper function
+function getPluginList() {
+  try {
+    const pluginManager = require('./utils/plugin-manager');
+    const allPlugins = pluginManager.getAllPlugins(false) || [];
+    
+    if (allPlugins.length === 0) {
+      return `
+        <div class="notification is-warning">
+          <p>No plugins found in the system.</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="table-container">
+        <table class="table is-fullwidth">
+          <thead>
+            <tr>
+              <th>Plugin Name</th>
+              <th>Status</th>
+              <th>Version</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allPlugins.map(plugin => `
+              <tr>
+                <td>
+                  <strong>${plugin.displayName || plugin.name}</strong>
+                  ${plugin.id ? `<div class="tag is-light is-small">${plugin.id}</div>` : ''}
+                </td>
+                <td>
+                  ${plugin.enabled ? 
+                    '<span class="tag is-success">Enabled</span>' : 
+                    '<span class="tag is-danger">Disabled</span>'}
+                </td>
+                <td>${plugin.version || 'N/A'}</td>
+                <td>${plugin.description || 'No description available'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    console.error('[Plugin Handler] Error generating plugin list:', error);
+    return '<div class="notification is-danger">Error loading plugin list</div>';
+  }
 }
 
 // Export functions
