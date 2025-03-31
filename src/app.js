@@ -7,6 +7,7 @@ require("express-async-errors");
 // const models = require("./models");
 
 // models.sequelize.sync({ force: false });
+const { serveWelcomePage } = require('./plugin-handler');
 
 const http = require("http");
 const cors = require("cors");
@@ -243,11 +244,11 @@ function handlePluginRoute(req, res, next) {
     console.log(`[App.js] Handling route via explicit registration: ${req.path}`);
     
     // Look for a plugin to handle the route
-    const plugins = Array.isArray(activePlugins) ? activePlugins : [];
+    const plugins = Array.isArray(global.activePlugins) ? global.activePlugins : [];
     
     if (plugins.length === 0) {
       console.warn('[App.js] No active plugins found');
-      return next();
+      return serveWelcomePage(req, res);
     }
     
     for (const plugin of plugins) {

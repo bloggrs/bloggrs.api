@@ -493,4 +493,15 @@ class PluginSystem {
     const serializedData = `
       <script>
         window.COMPONENT_DATA = {
-          template: \`${fallbackHTML.replace(/`
+          template: \`${fallbackHTML.replace(/`/g, '\\`')}\`,
+          data: {
+            error: ${JSON.stringify(errorMessage)},
+            path: ${JSON.stringify(req.path)}
+          }
+        };
+      </script>
+    `;
+  }
+}
+
+module.exports = { PluginSystem };
