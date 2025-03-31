@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL")
+  url      = "mysql://my_user:my_password@localhost:3306/bloggrs_influencer_platform_plugin"
 }
 
 // Influencer model

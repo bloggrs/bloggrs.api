@@ -6,7 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./generated/client');
 
 // Initialize Prisma client for database access
 let prisma;
@@ -54,7 +54,7 @@ async function getHomeData(req) {
         campaignCount: await prisma.campaign.count()
       };
       
-      const recentInfluencers = await prisma.influencers.findMany({
+      const recentInfluencers = await prisma.influencer.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' }
       });

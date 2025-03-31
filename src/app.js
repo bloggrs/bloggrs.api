@@ -85,35 +85,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Import the plugin system
 
-// Add this function near the top of app.js
-function loadAllPluginEnvironments() {
-  const pluginsDir = path.join(__dirname, 'bloggrs');
-  if (!fs.existsSync(pluginsDir)) return;
-  
-  const items = fs.readdirSync(pluginsDir, { withFileTypes: true });
-  const pluginDirs = items.filter(item => 
-    item.isDirectory() && item.name !== 'node_modules' && !item.name.startsWith('.')
-  );
-  
-  for (const dir of pluginDirs) {
-    const pluginId = dir.name;
-    const envPath = path.join(pluginsDir, pluginId, '.env');
-    
-    if (fs.existsSync(envPath)) {
-      console.log(`Loading environment from ${pluginId}/.env`);
-      const envContent = fs.readFileSync(envPath, 'utf8');
-      const pluginEnv = dotenv.parse(envContent);
-      
-      // Add to process.env
-      Object.entries(pluginEnv).forEach(([key, value]) => {
-        process.env[key] = value;
-      });
-    }
-  }
-}
-
-// Call this function before initializing plugins
-loadAllPluginEnvironments();
 
 // Function to load a plugin's .env file if it exists
 function loadPluginEnv(pluginId) {

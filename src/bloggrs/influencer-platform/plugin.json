@@ -6,7 +6,7 @@
   "description": "A platform for managing influencer marketing campaigns",
   "author": "Your Name",
   "tags": ["marketing", "influencer", "bulma", "social"],
-  "enabled": false,
+  "enabled": true,
   "priority": 10,
   "routes": [
     { 

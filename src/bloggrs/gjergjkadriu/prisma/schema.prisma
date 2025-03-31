@@ -1,0 +1,144 @@
+// This is your Prisma schema file for the influencer-platform plugin
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../generated/client"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://my_user:my_password@localhost:3306/bloggrs_influencer_platform_plugin"
+}
+
+// Influencer model
+model Influencer {
+  id              String          @id @default(uuid())
+  handle          String          @unique
+  name            String
+  bio             String?         @db.Text
+  image           String?
+  category        String?
+  followers       Int             @default(0)
+  engagementRate  Float?
+  posts           Int?            @default(0)
+  verified        Boolean         @default(false)
+  featured        Boolean         @default(false)
+  tagType         String?
+  email           String?
+  phone           String?
+  location        String?
+  tags            Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  socialProfiles  SocialProfile[]
+  campaigns       Campaign[]
+  sponsorships    Sponsorship[]
+  content         Content[]
+}
+
+// Brand model
+model Brand {
+  id            String        @id @default(uuid())
+  name          String
+  logo          String?
+  industry      String?
+  website       String?
+  description   String?       @db.Text
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  campaigns     Campaign[]
+  sponsorships  Sponsorship[]
+}
+
+// Campaign model
+model Campaign {
+  id           String       @id @default(uuid())
+  name         String
+  description  String?      @db.Text
+  status       String       @default("Draft")
+  budget       Float?
+  startDate    DateTime?
+  endDate      DateTime?
+  requirements String?      @db.Text
+  goals        String?      @db.Text
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  brand        Brand        @relation(fields: [brandId], references: [id])
+  brandId      String
+  influencers  Influencer[]
+  content     Content[]
+}
+
+// Sponsorship model - relationship between Brand and Influencer
+model Sponsorship {
+  id           String     @id @default(uuid())
+  startDate    DateTime
+  endDate      DateTime
+  terms        String?    @db.Text
+  compensation Float?
+  status       String     @default("Draft")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  brand        Brand      @relation(fields: [brandId], references: [id])
+  brandId      String
+  influencer   Influencer @relation(fields: [influencerId], references: [id])
+  influencerId String
+}
+
+// Social Profile model
+model SocialProfile {
+  id           String     @id @default(uuid())
+  platform     String
+  handle       String
+  url          String?
+  followers    Int?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  influencer   Influencer @relation(fields: [influencerId], references: [id])
+  influencerId String
+}
+
+// Content model - represents content created by influencers
+model Content {
+  id           String     @id @default(uuid())
+  type         String     // POST, STORY, REEL, VIDEO
+  title        String?
+  body         String?    @db.Text
+  mediaUrl     String?
+  publishDate  DateTime?
+  status       String     @default("Draft")
+  metrics      Json?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  influencer   Influencer @relation(fields: [influencerId], references: [id])
+  influencerId String
+  campaign     Campaign?  @relation(fields: [campaignId], references: [id])
+  campaignId   String?
+}
+
+// Enums
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum SponsorshipStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ContentType {
+  POST
+  STORY
+  REEL
+  VIDEO
+  COLLABORATION
+} 
