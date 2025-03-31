@@ -1,0 +1,73 @@
+{
+  "id": "blog-platform",
+  "name": "Blog Platform",
+  "displayName": "Blog Platform",
+  "version": "1.0.0",
+  "description": "A full-featured blogging platform",
+  "author": "Your Name",
+  "tags": ["blog", "content", "bulma", "cms"],
+  "enabled": true,
+  "priority": 10,
+  "routes": [
+    {
+      "path": "/",
+      "component": "views/Home.vue",
+      "dataProvider": "getHomeData"
+    },
+    {
+      "path": "/posts",
+      "component": "views/posts/PostList.vue",
+      "dataProvider": "getPostsData"
+    },
+    {
+      "path": "/posts/:slug",
+      "component": "views/posts/PostDetail.vue",
+      "dataProvider": "getPostDetailData"
+    },
+    {
+      "path": "/categories/:slug",
+      "component": "views/categories/CategoryPosts.vue",
+      "dataProvider": "getCategoryData"
+    },
+    {
+      "path": "/authors/:id",
+      "component": "views/authors/AuthorProfile.vue",
+      "dataProvider": "getAuthorData"
+    }
+  ],
+  "headTags": [
+    "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css\">",
+    "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css\">"
+  ],
+  "navigation": [
+    {
+      "label": "Home",
+      "path": "/",
+      "icon": "fas fa-home"
+    },
+    {
+      "label": "Posts",
+      "path": "/posts",
+      "icon": "fas fa-file-alt"
+    },
+    {
+      "label": "Categories",
+      "path": "/categories",
+      "icon": "fas fa-folder"
+    },
+    {
+      "label": "Authors",
+      "path": "/authors",
+      "icon": "fas fa-users"
+    }
+  ],
+  "permissions": [
+    "view:posts",
+    "create:posts",
+    "edit:posts",
+    "delete:posts",
+    "moderate:comments",
+    "manage:categories",
+    "manage:authors"
+  ]
+} 
