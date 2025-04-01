@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('./generated/client');
 
 // Import data access layers
 const influencerData = require('./data/influencers');

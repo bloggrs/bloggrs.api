@@ -8,6 +8,7 @@
   "tags": ["blog", "content", "bulma", "cms"],
   "enabled": true,
   "priority": 10,
+  "override": true,
   "routes": [
     {
       "path": "/",

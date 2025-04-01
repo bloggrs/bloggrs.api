@@ -18,10 +18,6 @@ async function getHomeData(req) {
   try {
     if (prisma) {
       const featuredPosts = await prisma.post.findMany({
-        where: { 
-          featured: true,
-          published: true 
-        },
         include: {
           author: true,
           categories: true,
@@ -32,7 +28,6 @@ async function getHomeData(req) {
       });
 
       const recentPosts = await prisma.post.findMany({
-        where: { published: true },
         include: {
           author: true,
           categories: true

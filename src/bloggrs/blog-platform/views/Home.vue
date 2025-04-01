@@ -52,7 +52,7 @@
                       </span>
                     </div>
                     <time :datetime="post.createdAt">
-                      {{ formatDate(post.createdAt) }}
+                      {{ post.createdAt }}
                     </time>
                   </div>
                 </div>
@@ -78,7 +78,7 @@
                   <a :href="`/posts/${post.slug}`">{{ post.title }}</a>
                 </h3>
                 <p class="subtitle is-6">
-                  By {{ post.author.name }} · {{ formatDate(post.createdAt) }}
+                  By {{ post.author.name }} · {{ post.createdAt }}
                 </p>
                 <p>{{ post.excerpt }}</p>
                 <div class="tags mt-2">
@@ -145,26 +145,26 @@ module.exports = {
       }
     };
   },
-  methods: {
-    formatDate(dateString) {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    }
-  },
-  async mounted() {
+  async created() {
     try {
-      const response = await fetch('/api/plugins/blog-platform/home');
-      const data = await response.json();
-      
-      this.featuredPosts = data.featuredPosts || [];
-      this.recentPosts = data.recentPosts || [];
-      this.categories = data.categories || [];
-      this.stats = data.stats || this.stats;
+      await this.fetchData();
     } catch (error) {
       console.error('Error loading blog data:', error);
+    }
+  },
+  methods: {
+    async fetchData() {
+      try {
+        const response = await fetch('/api/plugins/blog-platform/home');
+        const data = await response.json();
+        
+        this.featuredPosts = data.featuredPosts || [];
+        this.recentPosts = data.recentPosts || [];
+        this.categories = data.categories || [];
+        this.stats = data.stats || this.stats;
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
     }
   }
 };

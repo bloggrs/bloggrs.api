@@ -88,6 +88,7 @@
 
 <script>
 module.exports = {
+  name: 'BlogApp',
   data() {
     return {
       searchQuery: '',
@@ -101,10 +102,20 @@ module.exports = {
   },
   methods: {
     handleSearch() {
-      if (this.searchQuery.trim()) {
-        window.location.href = `/posts?search=${encodeURIComponent(this.searchQuery)}`;
+      if (this.searchQuery?.trim()) {
+        const searchPath = `/posts?search=${encodeURIComponent(this.searchQuery.trim())}`;
+        if (typeof window !== 'undefined') {
+          window.location.href = searchPath;
+        }
+        return searchPath;
       }
+      return null;
     }
+  },
+  // Add SSR-specific hooks
+  serverPrefetch() {
+    // This will be called during SSR
+    return Promise.resolve();
   }
 };
 </script>

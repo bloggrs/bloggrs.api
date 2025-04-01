@@ -1,0 +1,38 @@
+{
+  "featuredPosts": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "title": "Getting Started with Blogging",
+      "slug": "getting-started-with-blogging",
+      "excerpt": "Learn the essentials of starting your own blog...",
+      "coverImage": "https://via.placeholder.com/800x400",
+      "author": {
+        "name": "John Doe",
+        "avatar": "https://randomuser.me/api/portraits/men/1.jpg"
+      },
+      "categories": [
+        {
+          "id": "550e8400-e29b-41d4-a716-446655440000",
+          "name": "Tutorials"
+        }
+      ],
+      "createdAt": "2025-03-31T16:58:22.393Z"
+    }
+  ],
+  "recentPosts": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Tutorials",
+      "slug": "tutorials",
+      "_count": {
+        "posts": 5
+      }
+    }
+  ],
+  "stats": {
+    "postCount": 10,
+    "authorCount": 3,
+    "categoryCount": 5
+  }
+}
