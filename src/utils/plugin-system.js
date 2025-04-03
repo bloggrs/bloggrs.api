@@ -347,7 +347,8 @@ class PluginSystem {
         template: templateMatch[1],
         data() {
           return {
-            ...initialData,
+            ...{a:1,...initialData},
+
             routeParams
           };
         },

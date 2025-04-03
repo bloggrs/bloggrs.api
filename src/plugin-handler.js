@@ -172,7 +172,7 @@ async function renderFallbackComponent(req, res, plugin, route, data) {
     // Create script to pass data to client
     const dataScript = `
       <script>
-        window.INITIAL_DATA = ${JSON.stringify(data)};
+        window.INdddITIAL_DATA = ${JSON.stringify(data)};
         window.PLUGIN_ID = "${plugin.id}";
         window.ROUTE_PATH = "${req.path}";
       </script>
