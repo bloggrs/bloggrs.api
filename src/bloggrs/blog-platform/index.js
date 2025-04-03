@@ -92,7 +92,14 @@ class BlogPlatformPlugin {
 
   routes() {
     console.log(`[${this.id}] Getting routes from plugin.json`);
-    return this.config.routes || [];
+    return [
+      ...this.config.routes || [],
+      {
+        path: '/post/:id',
+        component: 'views/posts/PostDetail.vue',
+        dataProvider: 'getPostData'
+      }
+    ];
   }
 
   headTags() {
@@ -100,14 +107,12 @@ class BlogPlatformPlugin {
   }
 
   getDataProvider(name) {
-    const { getHomeData } = require('./data-providers');
+    const { getHomeData, getPostData, createComment } = require('./data-providers');
     
     const providers = {
       getHomeData: async (req) => {
         try {
-          const data = await getHomeData(req);
-          console.log('[Blog Platform] Got home data:', data);
-          return data; // Pass through the data directly
+          return await getHomeData(req);
         } catch (error) {
           console.error('Error in getHomeData provider:', error);
           return {
@@ -119,6 +124,29 @@ class BlogPlatformPlugin {
               authorCount: 0,
               categoryCount: 0
             }
+          };
+        }
+      },
+      getPostData: async (req) => {
+        try {
+          return await getPostData(req);
+        } catch (error) {
+          console.error('Error in getPostData provider:', error);
+          return {
+            error: error.message,
+            post: null,
+            lastUpdated: new Date().toISOString()
+          };
+        }
+      },
+      createComment: async (req) => {
+        try {
+          return await createComment(req);
+        } catch (error) {
+          console.error('Error in createComment provider:', error);
+          return {
+            success: false,
+            error: error.message
           };
         }
       }

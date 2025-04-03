@@ -21,11 +21,6 @@
       "dataProvider": "getPostsData"
     },
     {
-      "path": "/posts/:slug",
-      "component": "views/posts/PostDetail.vue",
-      "dataProvider": "getPostDetailData"
-    },
-    {
       "path": "/categories/:slug",
       "component": "views/categories/CategoryPosts.vue",
       "dataProvider": "getCategoryData"
@@ -34,6 +29,11 @@
       "path": "/authors/:id",
       "component": "views/authors/AuthorProfile.vue",
       "dataProvider": "getAuthorData"
+    },
+    {
+      "path": "/post/:id",
+      "component": "views/PostDetail.vue",
+      "dataProvider": "getPostData"
     }
   ],
   "headTags": [
