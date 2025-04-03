@@ -1,6 +1,5 @@
 <template>
   <div class="post-detail">
-
     <!-- Loading State -->
     <section class="section" v-if="loading">
       <div class="container has-text-centered">
@@ -24,7 +23,7 @@
         <div class="hero-body">
           <div class="container">
             <p class="subtitle is-6 has-text-white-bis">
-              {{ post.createdAt }}
+              {{ new Date(post.createdAt).toLocaleDateString() }}
             </p>
             <h1 class="title is-1 has-text-white">{{ post.title }}</h1>
             <div class="author-info has-text-white-bis">
@@ -67,46 +66,46 @@
       </section>
 
       <!-- Featured Posts -->
-      <section class="section" v-if="Array.isArray(featuredPosts) && featuredPosts.length">
+      <section class="section">
         <div class="container">
           <h2 class="title is-3">Featured Posts</h2>
           <div class="columns is-multiline">
             <div class="column is-4" 
-                 v-for="post in featuredPosts" 
-                 :key="post.id" 
-                 v-if="post.id !== post?.id">
+                 v-for="featuredPost in featuredPosts" 
+                 :key="featuredPost.id" 
+                 >
               <div class="card">
-                <div class="card-image" v-if="post.coverImage">
+                <div class="card-image" v-if="featuredPost.coverImage">
                   <figure class="image is-16by9">
-                    <img :src="post.coverImage" :alt="post.title">
+                    <img :src="featuredPost.coverImage" :alt="featuredPost.title">
                   </figure>
                 </div>
                 <div class="card-content">
                   <div class="media">
-                    <div class="media-left" v-if="post.author?.avatar">
+                    <div class="media-left" v-if="featuredPost.author?.avatar">
                       <figure class="image is-48x48">
-                        <img class="is-rounded" :src="post.author.avatar" :alt="post.author.name">
+                        <img class="is-rounded" :src="featuredPost.author.avatar" :alt="featuredPost.author.name">
                       </figure>
                     </div>
                     <div class="media-content">
-                      <p class="title is-4">{{ post.title }}</p>
-                      <p class="subtitle is-6" v-if="post.author">By {{ post.author.name }}</p>
+                      <p class="title is-4">{{ featuredPost.title }}</p>
+                      <p class="subtitle is-6" v-if="featuredPost.author">By {{ featuredPost.author.name }}</p>
                     </div>
                   </div>
 
                   <div class="content">
-                    <p>{{ post.excerpt }}</p>
+                    <p>{{ featuredPost.excerpt }}</p>
                     <div class="tags">
-                      <span class="tag is-light" v-for="category in post.categories" :key="category.id">
+                      <span class="tag is-light" v-for="category in featuredPost.categories" :key="category.id">
                         {{ category.name }}
                       </span>
                     </div>
                     <br>
-                    <time :datetime="post.createdAt">{{ post.createdAt }}</time>
+                    <time :datetime="featuredPost.createdAt">{{ new Date(featuredPost.createdAt).toLocaleDateString() }}</time>
                   </div>
                 </div>
                 <footer class="card-footer">
-                  <a :href="'/post/' + post.id" class="card-footer-item">
+                  <a :href="'/post/' + featuredPost.id" class="card-footer-item">
                     Read More
                   </a>
                 </footer>
