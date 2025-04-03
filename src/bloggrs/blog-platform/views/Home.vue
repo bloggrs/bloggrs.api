@@ -8,8 +8,7 @@
             Welcome to Our Blog
           </h1>
           <h2 class="subtitle">
-            Discover stories, insights, and knowledge
-          </h2>
+            Discover  dasdas
         </div>
       </div>
     </section>
