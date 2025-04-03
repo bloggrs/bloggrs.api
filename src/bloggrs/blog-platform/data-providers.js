@@ -11,56 +11,66 @@ try {
 
 /**
  * Get data for the blog home page
+ * This matches the dataProvider specified in plugin.json
  */
 async function getHomeData(req) {
   console.log('[Data Provider] Fetching blog home data');
   
   try {
-    if (prisma) {
-      const featuredPosts = await prisma.post.findMany({
+    if (!prisma) {
+      throw new Error('Database connection not available');
+    }
+
+    const [featuredPosts, categories, stats] = await Promise.all([
+      prisma.post.findMany({
+        where: {
+          featured: true,
+          published: true
+        },
         include: {
           author: true,
           categories: true,
-          tags: true
+          Tag: true
         },
         take: 5,
         orderBy: { createdAt: 'desc' }
-      });
-
-      const recentPosts = await prisma.post.findMany({
-        include: {
-          author: true,
-          categories: true
-        },
-        take: 10,
-        orderBy: { createdAt: 'desc' }
-      });
-
-      const categories = await prisma.category.findMany({
+      }),
+      prisma.category.findMany({
         include: {
           _count: {
             select: { posts: true }
           }
         }
-      });
-
-      const stats = {
+      }),
+      {
         postCount: await prisma.post.count({ where: { published: true } }),
         authorCount: await prisma.author.count(),
         categoryCount: await prisma.category.count()
-      };
+      }
+    ]);
 
-      return {
-        featuredPosts,
-        recentPosts,
-        categories,
-        stats,
-        lastUpdated: new Date().toISOString()
-      };
-    }
+    // Return data directly without the success/data wrapper
+    return {
+      featuredPosts,
+      recentPosts: featuredPosts, // Using featured posts as recent posts for now
+      categories,
+      stats,
+      lastUpdated: new Date().toISOString()
+    };
   } catch (error) {
-    console.error('[Data Provider] Error fetching blog home data:', error);
-    return loadMockData('home');
+    console.error('[Data Provider] Error:', error);
+    // Return fallback data in the same structure
+    return {
+      featuredPosts: [],
+      recentPosts: [],
+      categories: [],
+      stats: {
+        postCount: 0,
+        authorCount: 0,
+        categoryCount: 0
+      },
+      lastUpdated: new Date().toISOString()
+    };
   }
 }
 

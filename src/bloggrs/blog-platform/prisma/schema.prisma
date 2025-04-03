@@ -7,72 +7,71 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://my_user:my_password@localhost:3306/bloggrs_blog_platform_plugin"
+  url      = env("DATABASE_URL")
 }
 
 // Post model
 model Post {
-  id          String      @id @default(uuid())
-  title       String
-  slug        String      @unique
-  content     String?     @db.Text
-  excerpt     String?     @db.Text
-  coverImage  String?
-  published   Boolean     @default(false)
-  featured    Boolean     @default(false)
-  viewCount   Int         @default(0)
-  categories  Category[]
-  tags        Tag[]
-  author      Author      @relation(fields: [authorId], references: [id])
-  authorId    String
-  comments    Comment[]
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  id         String     @id @default(uuid())
+  title      String
+  slug       String     @unique
+  excerpt    String?    @db.Text
+  content    String?    @db.Text
+  coverImage String?
+  published  Boolean    @default(false)
+  featured   Boolean    @default(false)
+  viewCount  Int        @default(0)
+  author     Author     @relation(fields: [authorId], references: [id])
+  authorId   String
+  categories Category[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  Tag        Tag?       @relation(fields: [tagId], references: [id])
+  tagId      String?
+  Comment    Comment[]
 }
 
 // Author model
 model Author {
-  id          String    @id @default(uuid())
-  name        String
-  bio         String?   @db.Text
-  avatar      String?
-  email       String    @unique
-  social      Json?     // Store social media links
-  posts       Post[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String
+  bio       String?  @db.Text
+  avatar    String?
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Category model
 model Category {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?   @db.Text
-  posts       Post[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  posts     Post[]
+  postCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Tag model
 model Tag {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  slug        String    @unique
-  posts       Post[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  posts     Post[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Comment model
 model Comment {
-  id          String    @id @default(uuid())
-  content     String    @db.Text
-  author      String    // Name of commenter
-  email       String    // Email of commenter
-  approved    Boolean   @default(false)
-  post        Post      @relation(fields: [postId], references: [id])
-  postId      String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-} 
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  author    String // Name of commenter
+  email     String // Email of commenter
+  approved  Boolean  @default(false)
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

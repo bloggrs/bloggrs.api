@@ -433,7 +433,6 @@ app.get('/debug/plugins/head-tags', (req, res) => {
   
   res.json(headTagsInfo);
 });
-
 // Add this debug endpoint after initializing the plugin system
 app.get('/debug/plugin-data/:pluginId/:provider', async (req, res) => {
   const { pluginId, provider } = req.params;
@@ -484,7 +483,7 @@ app.get('/debug/plugin-data/:pluginId/:provider', async (req, res) => {
 });
 
 // Define port
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 
 // Start server
 server.listen(PORT, () => {

@@ -99,18 +99,32 @@ class BlogPlatformPlugin {
     return this.config.headTags || [];
   }
 
-  getDataProvider(providerName) {
-    console.log(`[${this.id}] Looking for data provider: ${providerName}`);
+  getDataProvider(name) {
+    const { getHomeData } = require('./data-providers');
     
-    if (dataProviders[providerName]) {
-      return dataProviders[providerName];
-    }
+    const providers = {
+      getHomeData: async (req) => {
+        try {
+          const data = await getHomeData(req);
+          console.log('[Blog Platform] Got home data:', data);
+          return data; // Pass through the data directly
+        } catch (error) {
+          console.error('Error in getHomeData provider:', error);
+          return {
+            featuredPosts: [],
+            recentPosts: [],
+            categories: [],
+            stats: {
+              postCount: 0,
+              authorCount: 0,
+              categoryCount: 0
+            }
+          };
+        }
+      }
+    };
     
-    console.warn(`[${this.id}] Data provider not found: ${providerName}`);
-    return async () => ({
-      error: `Data provider '${providerName}' not found`,
-      timestamp: new Date().toISOString()
-    });
+    return providers[name];
   }
 
   registerApiRoutes(app) {

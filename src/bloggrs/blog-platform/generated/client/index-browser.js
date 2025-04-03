@@ -126,15 +126,16 @@ exports.Prisma.PostScalarFieldEnum = {
   id: 'id',
   title: 'title',
   slug: 'slug',
-  content: 'content',
   excerpt: 'excerpt',
+  content: 'content',
   coverImage: 'coverImage',
   published: 'published',
   featured: 'featured',
   viewCount: 'viewCount',
   authorId: 'authorId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  tagId: 'tagId'
 };
 
 exports.Prisma.AuthorScalarFieldEnum = {
@@ -142,8 +143,6 @@ exports.Prisma.AuthorScalarFieldEnum = {
   name: 'name',
   bio: 'bio',
   avatar: 'avatar',
-  email: 'email',
-  social: 'social',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -152,7 +151,7 @@ exports.Prisma.CategoryScalarFieldEnum = {
   id: 'id',
   name: 'name',
   slug: 'slug',
-  description: 'description',
+  postCount: 'postCount',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -181,20 +180,9 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
-  JsonNull: Prisma.JsonNull
-};
-
 exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
-};
-
-exports.Prisma.JsonNullValueFilter = {
-  DbNull: Prisma.DbNull,
-  JsonNull: Prisma.JsonNull,
-  AnyNull: Prisma.AnyNull
 };
 
 
