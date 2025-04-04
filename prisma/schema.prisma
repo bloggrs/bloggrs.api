@@ -2836,7 +2836,7 @@ model plugins {
   @@index([status])
   @@index([isPublic])
   @@index([author])
-  @@index([categories])
+  
 }
 
 model themes {
@@ -2917,7 +2917,7 @@ model themes {
   @@index([status])
   @@index([isPublic])
   @@index([author])
-  @@index([categories])
+  
 }
 
 model userpreferences {

@@ -1,0 +1,38 @@
+docs:
+  - title: Getting Started
+    children:
+      - title: Introduction
+        url: /
+      - title: Setup
+        url: /setup
+      - title: Configuration
+        url: /configuration
+
+  - title: Core Concepts
+    children:
+      - title: Data Models
+        url: /data-models
+      - title: GraphQL API
+        url: /graphql-api
+      - title: Authentication
+        url: /authentication
+
+  - title: Advanced Topics
+    children:
+      - title: Security
+        url: /security
+      - title: Caching
+        url: /caching
+      - title: Performance
+        url: /performance
+      - title: Deployment
+        url: /deployment
+
+  - title: API Reference
+    children:
+      - title: Schema Reference
+        url: /schema-reference
+      - title: GraphQL Operations
+        url: /graphql-operations
+      - title: Error Codes
+        url: /error-codes 
