@@ -34,6 +34,11 @@
       "path": "/post/:id",
       "component": "views/PostDetail.vue",
       "dataProvider": "getPostData"
+    },
+    {
+      "path": "/category/:id",
+      "component": "views/categories/CategoryPosts.vue",
+      "dataProvider": "getCategoryPostsData"
     }
   ],
   "headTags": [

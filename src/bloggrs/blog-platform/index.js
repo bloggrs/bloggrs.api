@@ -107,49 +107,18 @@ class BlogPlatformPlugin {
   }
 
   getDataProvider(name) {
-    const { getHomeData, getPostData, createComment } = require('./data-providers');
+    const { 
+      getHomeData, 
+      getPostData, 
+      createComment, 
+      getCategoryPostsData
+    } = require('./data-providers');
     
     const providers = {
-      getHomeData: async (req) => {
-        try {
-          return await getHomeData(req);
-        } catch (error) {
-          console.error('Error in getHomeData provider:', error);
-          return {
-            featuredPosts: [],
-            recentPosts: [],
-            categories: [],
-            stats: {
-              postCount: 0,
-              authorCount: 0,
-              categoryCount: 0
-            }
-          };
-        }
-      },
-      getPostData: async (req) => {
-        try {
-          return await getPostData(req);
-        } catch (error) {
-          console.error('Error in getPostData provider:', error);
-          return {
-            error: error.message,
-            post: null,
-            lastUpdated: new Date().toISOString()
-          };
-        }
-      },
-      createComment: async (req) => {
-        try {
-          return await createComment(req);
-        } catch (error) {
-          console.error('Error in createComment provider:', error);
-          return {
-            success: false,
-            error: error.message
-          };
-        }
-      }
+      getHomeData,
+      getPostData,
+      createComment,
+      getCategoryPostsData
     };
     
     return providers[name];

@@ -304,10 +304,72 @@ async function getPostDetailData(req) {
   }
 }
 
+async function getCategoryPostsData(req) {
+  console.log('[Data Provider] Fetching category posts for ID:', req.params.id);
+  
+  try {
+    if (!prisma) {
+      throw new Error('Database connection not available');
+    }
+
+    // Get category and its posts
+    const category = await prisma.category.findUnique({
+      where: {
+        id: req.params.id
+      },
+      include: {
+        posts: {
+          orderBy: {
+            createdAt: 'desc'
+          },
+          include: {
+            author: true,
+            categories: true
+          }
+        }
+      }
+    });
+
+    if (!category) {
+      return {
+        error: 'Category not found',
+        category: null,
+        posts: [],
+        lastUpdated: new Date().toISOString()
+      };
+    }
+
+    return {
+      category: {
+        id: category.id,
+        name: category.name,
+        slug: category.slug
+      },
+      posts: category.posts.map(post => ({
+        ...post,
+        author: post.author || {
+          name: 'Unknown Author',
+          avatar: null
+        }
+      })),
+      lastUpdated: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('[Data Provider] Error:', error);
+    return {
+      error: error.message,
+      category: null,
+      posts: [],
+      lastUpdated: new Date().toISOString()
+    };
+  }
+}
+
 module.exports = {
   getHomeData,
   loadMockData,
   getPostData,
   createComment,
-  getPostDetailData
+  getPostDetailData,
+  getCategoryPostsData
 }; 
