@@ -55,20 +55,138 @@ I see now that I was generating theoretical features rather than analyzing the a
    - Subscriptions (`graphqlSubscriptions` model)
    - Middleware (`graphqlMiddleware` model)
    - Permissions (`graphqlPermissions` model)
+# Create a mutation
+POST /graphql/mutations
+{
+  "name": "createPost",
+  "query": "mutation($title: String!) { createPost(title: $title) { id } }",
+  "variables": { "title": "String!" },
+  "description": "Creates a new post"
+}
 
+# Get all mutations
+GET /graphql/mutations
+
+# Create a subscription
+POST /graphql/subscriptions
+{
+  "name": "onPostCreated",
+  "query": "subscription { onPostCreated { id title } }",
+  "description": "Notifies when a new post is created"
+}
+
+# Create middleware
+POST /graphql/middleware
+{
+  "name": "logRequest",
+  "function": "async (resolve, root, args, context, info) => { ... }",
+  "type": "pre",
+  "order": 1
+}
+
+# Create permission
+POST /graphql/permissions
+{
+  "name": "canCreatePost",
+  "rules": {
+    "Post": {
+      "create": "isAuthenticated() && hasRole('AUTHOR')"
+    }
+  },
+  "description": "Permission to create posts"
+}
 2. **GraphQL Performance & Security**
    - Rate limiting (`graphqlRateLimit` model)
    - Metrics tracking (`graphqlMetrics` model)
    - Caching (`graphqlCache` model)
    - Playground configuration (`graphqlPlayground` model)
+# Create rate limit
+POST /graphql/rate-limits
+{
+  "path": "createPost",
+  "limit": 100,
+  "window": 3600,
+  "description": "Limit post creation to 100 per hour"
+}
 
+# Record metric
+POST /graphql/metrics
+{
+  "operationName": "createPost",
+  "duration": 150,
+  "success": true,
+  "path": "mutation.createPost"
+}
+
+# Set cache rule
+POST /graphql/cache
+{
+  "path": "query.getPosts",
+  "ttl": 300,
+  "scope": "public",
+  "description": "Cache post list for 5 minutes"
+}
+
+# Update playground config
+POST /graphql/playground/config
+{
+  "enabled": true,
+  "settings": {
+    "theme": "dark",
+    "fontSize": 14
+  }
+}
 ### Server-Side Rendering Features
 1. **SSR Configuration**
    - Cache settings (`ssrSettings` model)
    - Cache duration control
    - Vue version management
    - EJS template settings
+// Update SSR settings
+POST /api/ssr/settings
+{
+  "cacheEnabled": true,
+  "cacheDuration": 3600,
+  "vueVersion": "3.2.0",
+  "ejsSettings": {
+    "delimiter": "%",
+    "compileDebug": false,
+    "cache": true
+  },
+  "defaultHeaders": {
+    "Cache-Control": "public, max-age=3600",
+    "X-SSR-Enabled": "true"
+  },
+  "compressionEnabled": true
+}
 
+// Get current settings
+GET /api/ssr/settings
+
+// Clear cache
+POST /api/ssr/cache/clear
+{
+  "path": "/blog/*"  // Optional, clears all if not specified
+}
+
+// Using the cache in your routes
+app.get('/blog/:id', async (req, res) => {
+  const cacheKey = `blog-${req.params.id}`;
+  
+  // Try cache first
+  const cached = await SSRCache.get(cacheKey);
+  if (cached) {
+    return res.send(cached);
+  }
+  
+  // Render content
+  const html = await renderContent();
+  
+  // Cache the result
+  await SSRCache.set(cacheKey, html);
+  
+  res.send(html);
+});
 2. **SSR Caching**
    - Path-based caching (`ssrCache` model)
    - Content validation

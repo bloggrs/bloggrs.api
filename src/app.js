@@ -483,7 +483,7 @@ app.get('/debug/plugin-data/:pluginId/:provider', async (req, res) => {
 });
 
 // Define port
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 4000;
 
 // Start server
 server.listen(PORT, () => {

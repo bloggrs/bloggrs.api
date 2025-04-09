@@ -15,22 +15,22 @@ const transformBlog = async blog => {
   // console.log({ blog },222)
   // blog = JSON.parse(JSON.stringify(blog));
   console.log(blog)
-  blog.blocks = await getBlocks({ BlogId: blog.id })
-  let key = await publickeysDal.findOne({
-    BlogId: blog.id
-  })
-  if (!key) {
-    key = await publickeysDal.createPublicKey({ BlogId: blog.id });
-  }
+  // blog.blocks = await getBlocks({ BlogId: blog.id })
+  // let key = await publickeysDal.findOne({
+  //   BlogId: blog.id
+  // })
+  // if (!key) {
+  //   key = await publickeysDal.createPublicKey({ BlogId: blog.id });
+  // }
 
-  blog.public_key = key.id;
-  blog.pages = await pagesDal.findAll({ BlogId: blog.id });
+  // blog.public_key = key.id;
+  // blog.pages = await pagesDal.findAll({ BlogId: blog.id });
   return blog;
 }
 
 const findByPkOr404 = async (pk) => {
-  const blog = await prisma.blogs.findUnique({ where: { id: Number(pk), deletedAt: null }}) ||
-  await prisma.blogs.findUnique({ where: { id: Number(pk), deletedAt: { lte: new Date() } }})
+  const blog = await prisma.blogs.findUnique({ where: { id: pk, deletedAt: null }}) ||
+  await prisma.blogs.findUnique({ where: { id: pk, deletedAt: { lte: new Date() } }})
   if (!blog) throw new ErrorHandler.get404("Blog")
   return await transformBlog(blog);
 }

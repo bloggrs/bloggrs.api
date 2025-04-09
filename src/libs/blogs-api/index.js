@@ -476,20 +476,17 @@ app.get(
     validateRequest(
       yup.object().shape({
         params: yup.object().shape({
-          blog_id: param_id.required(),
+          blog_id: yup.string().required(),
         }),
       })
     ),
   ],
   async (req, res) => {
     const blog = await findByPkOr404(req.params.blog_id);
-    const key = await publickeysDal.findOne({
-      BlogId: blog.id
-    });
     return res.json({
       code: 200,
       message: "sucess",
-      data: { blog, key },
+      data: { blog,  },
     });
   }
 );

@@ -16,8 +16,18 @@ module.exports = {
     }) => {
         let user = await prisma.users.create({
             data: {
-                first_name, last_name, email, isGuest: false,
-                password: await bcrypt.hash(password, SALT_ROUNDS), 
+                username: email,
+                firstName: first_name,
+                lastName: last_name,
+                email,
+                password: await bcrypt.hash(password, SALT_ROUNDS),
+                status: "active",
+                role: "user", 
+                emailVerified: false,
+                failedLoginAttempts: 0,
+                twoFactorEnabled: false,
+                createdAt: new Date(),
+                updatedAt: new Date()
             }
         })
         return user;
@@ -26,7 +36,17 @@ module.exports = {
         first_name, last_name,
         email, password
     }) => {
-        let args = { first_name, last_name, email }
+        let args = { 
+            firstName: first_name || "John",
+            lastName: last_name || "Doe", 
+            email: email || "user" + uuid() + "@example.com",
+            username: email || "user" + uuid() + "@example.com",
+            status: "active",
+            role: "user",
+            emailVerified: false,
+            failedLoginAttempts: 0,
+            twoFactorEnabled: false
+        }
         if (password) args.password = await bcrypt.hash(password, SALT_ROUNDS)
         let user = await prisma.users.create({ data: args })
         return user; 

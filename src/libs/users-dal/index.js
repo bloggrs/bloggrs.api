@@ -4,7 +4,7 @@ const prisma = require("../../prisma")
 
 module.exports = {
     findUserByPk: async pk => await prisma.users.findUnique({ 
-        where: { id: parseInt(pk) }
+        where: { id: pk }
     }),
     createGuestUser: async () => await prisma.users.create({
         data: {
