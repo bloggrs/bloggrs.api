@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'Blog' %></title>
+    <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+    <header class="site-header">
+        <nav class="main-nav">
+            <div class="nav-brand">
+                <a href="/" class="logo">Blog</a>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/blog" class="nav-link">Blog</a>
+                <a href="/about" class="nav-link">About</a>
+            </div>
+            <div class="nav-search">
+                <form action="/search" method="GET" class="search-form">
+                    <input type="text" name="q" placeholder="Search posts..." class="search-input">
+                    <button type="submit" class="search-button">Search</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+    <main class="main-content"> 

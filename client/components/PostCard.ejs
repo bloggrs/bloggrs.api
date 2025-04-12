@@ -1,0 +1,31 @@
+<article class="post-card">
+    <div class="post-header">
+        <h2 class="post-title">
+            <a href="/blog/<%= post.slug %>"><%= post.title %></a>
+        </h2>
+        <div class="post-meta">
+            <span class="post-author">
+                By <%= post.users.first_name %> <%= post.users.last_name %>
+            </span>
+            <span class="post-date">
+                <%= new Date(post.createdAt).toLocaleDateString() %>
+            </span>
+        </div>
+    </div>
+    <div class="post-content">
+        <p><%= post.content.substring(0, 200) %>...</p>
+    </div>
+    <div class="post-footer">
+        <a href="/blog/<%= post.slug %>" class="read-more">Read More</a>
+        <div class="post-stats">
+            <span class="comments-count">
+                <i class="icon-comments"></i>
+                <%= post.comments_count || 0 %> Comments
+            </span>
+            <span class="likes-count">
+                <i class="icon-heart"></i>
+                <%= post.likes_count || 0 %> Likes
+            </span>
+        </div>
+    </div>
+</article> 

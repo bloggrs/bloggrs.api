@@ -1,0 +1,29 @@
+<div class="pagination">
+    <% if (totalPages > 1) { %>
+        <div class="pagination-container">
+            <% if (currentPage > 1) { %>
+                <a href="<%= baseUrl %>?page=<%= currentPage - 1 %>" class="pagination-link prev">
+                    &laquo; Previous
+                </a>
+            <% } %>
+
+            <div class="pagination-numbers">
+                <% for(let i = 1; i <= totalPages; i++) { %>
+                    <% if (i === currentPage) { %>
+                        <span class="pagination-number active"><%= i %></span>
+                    <% } else { %>
+                        <a href="<%= baseUrl %>?page=<%= i %>" class="pagination-number">
+                            <%= i %>
+                        </a>
+                    <% } %>
+                <% } %>
+            </div>
+
+            <% if (currentPage < totalPages) { %>
+                <a href="<%= baseUrl %>?page=<%= currentPage + 1 %>" class="pagination-link next">
+                    Next &raquo;
+                </a>
+            <% } %>
+        </div>
+    <% } %>
+</div> 
