@@ -16,18 +16,11 @@ module.exports = {
     }) => {
         let user = await prisma.users.create({
             data: {
-                username: email,
-                firstName: first_name,
-                lastName: last_name,
+                first_name: first_name,
+                last_name: last_name,
                 email,
                 password: await bcrypt.hash(password, SALT_ROUNDS),
-                status: "active",
-                role: "user", 
-                emailVerified: false,
-                failedLoginAttempts: 0,
-                twoFactorEnabled: false,
-                createdAt: new Date(),
-                updatedAt: new Date()
+                isGuest: false
             }
         })
         return user;

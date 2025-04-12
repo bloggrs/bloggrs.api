@@ -13,30 +13,30 @@ interface RouteData {
 export function App() {
   const { isConnected, sendMessage, lastMessage } = useWebSocket();
   const [routes, setRoutes] = useState<RouteData[]>([]);
+  const [isLoadingRoutes, setIsLoadingRoutes] = useState(true);
 
-  // Handle initial connection and route subscription
+  // Request routes when connected
   useEffect(() => {
     if (isConnected) {
-      // Request initial routes
+      setIsLoadingRoutes(true);
       sendMessage({ type: 'getRoutes' });
-      
-      // Subscribe to route updates
-      sendMessage({
-        type: 'subscribe',
-        channel: 'routes'
-      });
     }
   }, [isConnected]);
 
   // Handle incoming messages
   useEffect(() => {
-    if (lastMessage && lastMessage.type === 'response' && lastMessage.endpoint === 'routes') {
+    if (lastMessage?.type === 'response' && lastMessage?.endpoint === 'routes') {
       setRoutes(lastMessage.data);
+      setIsLoadingRoutes(false);
     }
   }, [lastMessage]);
 
   if (!isConnected) {
     return <div className="loading">Connecting to server...</div>;
+  }
+
+  if (isLoadingRoutes) {
+    return <div className="loading">Loading available pages...</div>;
   }
 
   return (
@@ -50,8 +50,12 @@ export function App() {
               element={<DynamicPage />}
             />
           ))}
-          {/* Fallback route */}
-          <Route path="*" element={<div className="error">Page not found</div>} />
+          {!isLoadingRoutes && (
+            <Route 
+              path="*" 
+              element={<div className="error">Page not found</div>} 
+            />
+          )}
         </Routes>
       </div>
     </BrowserRouter>

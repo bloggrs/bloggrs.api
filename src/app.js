@@ -74,15 +74,8 @@ const console_api = require("./console-api");
 const app = express();
 
 // Enable CORS
-app.use(cors({
-  origin: 'http://localhost:5173', // Vite dev server
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
-
-// Basic middleware
 app.use(cors())
+// Basic middleware
 app.use(compression());
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(bodyParser.json({ limit: "50mb" }));
