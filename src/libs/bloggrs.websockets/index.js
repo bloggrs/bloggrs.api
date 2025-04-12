@@ -16,6 +16,7 @@ const { getBlogHeaderWidetData } = require("../blogs-api/blogs-dal");
 const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const dataProviderService = require("../../services/data-provider");
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -48,10 +49,8 @@ wss.on('connection', (ws, req) => {
   // Handle messages from client
   ws.on('message', async (message) => {
     try {
-      const data = JSON.parse(message.toString()); // Add toString() to handle Buffer
-      console.log('Received message:', data); // Add logging
+      const data = JSON.parse(message.toString());
       
-      // Handle different message types
       switch (data.type) {
         case 'subscribe':
           await handleSubscribe(ws, apiKey, data);
@@ -90,8 +89,11 @@ wss.on('connection', (ws, req) => {
             }));
           }
           break;
+        case 'getPageData':
+          await handlePageData(ws, apiKey, data);
+          break;
         default:
-          console.log('Unknown message type:', data.type); // Add logging
+          console.log('Unknown message type:', data.type);
           ws.send(JSON.stringify({ 
             type: 'error', 
             message: `Unknown message type: ${data.type}` 
@@ -521,6 +523,137 @@ async function createTestData(blogId) {
   return { component, page };
 }
 
+async function handlePageData(ws, apiKey, data) {
+  try {
+    const { path, parameters } = data;
+    const { page = 1, pageSize = 10, category = null } = parameters || {};
+
+    // Get the page data with component and data sources
+    const pageData = await prisma.Page.findFirst({
+      where: {
+        path,
+        isPublished: true
+      },
+      include: {
+        component: true,
+        PageDataSource: {
+          include: {
+            provider: true
+          }
+        }
+      }
+    });
+
+    if (!pageData) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: 'Page not found'
+      }));
+      return;
+    }
+
+    // Process data sources and interpret template strings
+    let data2 = {};
+    if (pageData.PageDataSource?.length > 0) {
+      for (const dataSource of pageData.PageDataSource) {
+        const provider = dataSource.provider;
+        
+        if (provider.type === 'query') {
+          // Handle database queries based on provider config
+          const queryResult = await prisma[provider.config.model].findMany({
+            where: provider.config.where,
+            select: provider.config.select,
+            orderBy: provider.config.orderBy,
+            skip: provider.config.pagination ? (page - 1) * pageSize : undefined,
+            take: provider.config.pagination ? pageSize : undefined
+          });
+
+          // Process template strings if templatePath exists
+          if (dataSource.templatePath) {
+            data2[provider.name] = queryResult.map(item => {
+              // Replace template strings in content
+              let processedContent = item.html_content;
+              if (typeof processedContent === 'string') {
+                // Replace any template variables
+                processedContent = processedContent.replace(
+                  /{([^}]+)}/g,
+                  (match, key) => item[key.trim()] || match
+                );
+              }
+              return {
+                ...item,
+                html_content: processedContent
+              };
+            });
+          } else {
+            data2[provider.name] = queryResult;
+          }
+        }
+      }
+    }
+
+    // Get posts for blog pages
+    let posts = [];
+    if (path === '/blog' || path.startsWith('/blog/')) {
+      posts = await prisma.posts.findMany({
+        where: {
+          isPublished: true,
+          ...(category && {
+            categories: {
+              some: { slug: category }
+            }
+          })
+        },
+        include: {
+          users: {
+            select: {
+              first_name: true,
+              last_name: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize
+      });
+    }
+
+    // Send the processed page data back to the client
+    ws.send(JSON.stringify({
+      type: 'pageData',
+      data: {
+        title: pageData.title,
+        component: pageData.component ? {
+          content: pageData.component.content,
+          name: pageData.component.name,
+          props: pageData.component.props
+        } : null,
+        props: {
+          ...pageData.props,
+          posts: posts.length > 0 ? posts : undefined
+        },
+        data: data2
+      }
+    }));
+  } catch (error) {
+    console.error('Error handling page data:', error);
+    ws.send(JSON.stringify({
+      type: 'error',
+      message: 'Error fetching page data'
+    }));
+  }
+}
+
+function mapParameters(pageParams, parameterMap) {
+  const result = {};
+  Object.entries(parameterMap).forEach(([providerParam, pageParam]) => {
+    if (pageParams[pageParam] !== undefined) {
+      result[providerParam] = pageParams[pageParam];
+    }
+  });
+  return result;
+}
+
 // Export functions for use in other modules
 module.exports = function(wss) {
   // Set up connection handler
@@ -545,10 +678,8 @@ module.exports = function(wss) {
     // Handle messages from client
     ws.on('message', async (message) => {
       try {
-        const data = JSON.parse(message.toString()); // Add toString() to handle Buffer
-        console.log('Received message:', data); // Add logging
+        const data = JSON.parse(message.toString());
         
-        // Handle different message types
         switch (data.type) {
           case 'subscribe':
             await handleSubscribe(ws, apiKey, data);
@@ -561,6 +692,7 @@ module.exports = function(wss) {
             break;
           case 'getRoutes':
             // Handle getRoutes specifically
+            console.log({ data })
             const routes = await getPageRoutes(data.blogId || apiKey);
             ws.send(JSON.stringify({
               type: 'response',
@@ -587,8 +719,11 @@ module.exports = function(wss) {
               }));
             }
             break;
+          case 'getPageData':
+            await handlePageData(ws, apiKey, data);
+            break;
           default:
-            console.log('Unknown message type:', data.type); // Add logging
+            console.log('Unknown message type:', data.type);
             ws.send(JSON.stringify({ 
               type: 'error', 
               message: `Unknown message type: ${data.type}` 

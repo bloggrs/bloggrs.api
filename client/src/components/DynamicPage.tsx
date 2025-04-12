@@ -16,21 +16,26 @@ interface PageData {
 export function DynamicPage() {
   const location = useLocation();
   const { isConnected, sendMessage, lastMessage } = useWebSocket();
-  const [pageData, setPageData] = useState<PageData | null>(null);
+  const [pageData, setPageData] = useState<any>(null);
+  const [parameters, setParameters] = useState({
+    page: 1,
+    pageSize: 10,
+    category: null
+  });
 
-  // Request page data when connected
   useEffect(() => {
     if (isConnected) {
       sendMessage({
-        type: 'getPage',
-        path: location.pathname || '/'
+        type: 'getPageData',
+        path: location.pathname,
+        parameters
       });
     }
-  }, [isConnected, location.pathname]);
+  }, [isConnected, location.pathname, parameters]);
 
   // Handle incoming messages
   useEffect(() => {
-    if (lastMessage?.type === 'response' && lastMessage?.endpoint === 'page') {
+    if (lastMessage?.type === 'pageData') {
       setPageData(lastMessage.data);
     }
   }, [lastMessage]);
@@ -50,11 +55,28 @@ export function DynamicPage() {
   };
 
   return (
-    <div className={`dynamic-component ${pageData.component.name.toLowerCase()}`}>
-      <DynamicComponent
-        content={pageData.component.content}
-        props={mergedProps}
-      />
+    <div className="dynamic-page">
+      {pageData ? (
+        <div dangerouslySetInnerHTML={{ __html: pageData.content }} />
+      ) : (
+        <div>Loading...</div>
+      )}
+      
+      {/* Pagination controls */}
+      <div className="pagination">
+        <button 
+          onClick={() => setParameters(p => ({ ...p, page: p.page - 1 }))}
+          disabled={parameters.page === 1}
+        >
+          Previous
+        </button>
+        <span>Page {parameters.page}</span>
+        <button 
+          onClick={() => setParameters(p => ({ ...p, page: p.page + 1 }))}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 } 

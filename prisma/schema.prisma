@@ -1105,19 +1105,49 @@ model PageComponent {
 }
 
 model Page {
-  id          Int           @id @default(autoincrement())
-  path        String        @db.VarChar(255)
-  title       String        @db.VarChar(255)
-  componentId Int
-  props       Json          @default("{}")
-  isPublished Boolean       @default(false)
-  blogId      Int
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  component   PageComponent @relation(fields: [componentId], references: [id])
-  blog        blogs         @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  id             Int              @id @default(autoincrement())
+  path           String           @db.VarChar(255)
+  title          String           @db.VarChar(255)
+  componentId    Int
+  props          Json             @default("{}")
+  isPublished    Boolean          @default(false)
+  blogId         Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  component      PageComponent    @relation(fields: [componentId], references: [id])
+  blog           blogs            @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  PageDataSource PageDataSource[]
 
   @@unique([path, blogId])
   @@index([blogId])
   @@index([componentId])
+}
+
+model DataProvider {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  type       String // 'query', 'rest', 'graphql', etc.
+  config     Json // Store configuration like endpoint, query params, etc.
+  parameters Json // Define accepted parameters and their validation rules
+  cacheTime  Int? // Cache duration in seconds, null for no cache
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  pageDataSources PageDataSource[]
+}
+
+model PageDataSource {
+  id           Int      @id @default(autoincrement())
+  pageId       Int
+  providerId   Int
+  parameterMap Json // Map page props to provider parameters
+  templatePath String? // Path to the template file
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  page     Page         @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  provider DataProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, providerId])
 }
