@@ -6,10 +6,8 @@ import './styles/components.css';
 
 interface RouteData {
   path: string;
-  component: {
-    content: string;
-    props: Record<string, any>;
-  };
+  title: string;
+  componentId: string;
 }
 
 export function App() {
@@ -38,7 +36,7 @@ export function App() {
   }, [lastMessage]);
 
   if (!isConnected) {
-    return <div>Connecting to server...</div>;
+    return <div className="loading">Connecting to server...</div>;
   }
 
   return (
@@ -53,7 +51,7 @@ export function App() {
             />
           ))}
           {/* Fallback route */}
-          <Route path="*" element={<div>Page not found</div>} />
+          <Route path="*" element={<div className="error">Page not found</div>} />
         </Routes>
       </div>
     </BrowserRouter>
