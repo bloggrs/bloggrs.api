@@ -12,19 +12,19 @@ const pagesDal = require("../pages-api/pages-dal");
 
 
 const transformBlog = async blog => {
-  // console.log({ blog },222)
-  // blog = JSON.parse(JSON.stringify(blog));
+  console.log({ blog },222)
+  blog = JSON.parse(JSON.stringify(blog));
   console.log(blog)
-  // blog.blocks = await getBlocks({ BlogId: blog.id })
-  // let key = await publickeysDal.findOne({
-  //   BlogId: blog.id
-  // })
-  // if (!key) {
-  //   key = await publickeysDal.createPublicKey({ BlogId: blog.id });
-  // }
+  blog.blocks = await getBlocks({ BlogId: blog.id })
+  let key = await publickeysDal.findOne({
+    BlogId: blog.id
+  })
+  if (!key) {
+    key = await publickeysDal.createPublicKey({ BlogId: blog.id });
+  }
 
-  // blog.public_key = key.id;
-  // blog.pages = await pagesDal.findAll({ BlogId: blog.id });
+  blog.public_key = key.id;
+  blog.pages = await pagesDal.findAll({ BlogId: blog.id });
   return blog;
 }
 

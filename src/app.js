@@ -29,6 +29,10 @@ const resourceManager = require('./utils/resource-manager');
 const { initializePlugins } = require('./utils/plugin-init');
 const { setupVueRequireHook } = require('./utils/vue-require-hook');
 const { PluginSystem } = require('./utils/plugin-system');
+const vue_api = require('./libs/vue-api');
+const bloggrs_websockets = require('./libs/bloggrs.websockets');
+const WebSocket = require('ws');
+const { handleWebSocketConnection } = require('./libs/bloggrs.websockets');
 
 const docs_collector = new DocsCollector(
   __dirname + "/libs/api-docs/swagger-input.json",
@@ -68,8 +72,14 @@ const resourcepolicies_api = require("./libs/resourcepolicies-api");
 const console_api = require("./console-api");
 
 const app = express();
-const server = http.createServer(app);
-// __dirname is already defined since this is a CommonJS module
+
+// Enable CORS
+app.use(cors({
+  origin: 'http://localhost:5173', // Vite dev server
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
 
 // Basic middleware
 app.use(cors())
@@ -485,15 +495,29 @@ app.get('/debug/plugin-data/:pluginId/:provider', async (req, res) => {
 // Define port
 const PORT = process.env.PORT || 4000;
 
+// Create single HTTP server instance
+const server = http.createServer(app);
+
+// Create WebSocket server
+const wss = new WebSocket.Server({ 
+  server,
+  path: '/ws'  // Explicitly set the path
+});
+
+// Initialize websockets with the wss instance
+const wsHandler = bloggrs_websockets(wss);
+
+// Export wsHandler if needed
+app.set('wsHandler', wsHandler);
+
 // Start server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`- Web UI: http://localhost:${PORT}/`);
   console.log(`- API: http://localhost:${PORT}/api/v1/`);
+  console.log(`- WebSocket: ws://localhost:${PORT}/ws`);
   console.log(`- Plugins API: http://localhost:${PORT}/api/plugins`);
   console.log(`- Debug UI: http://localhost:${PORT}/debug/plugins/routes`);
-  console.log(`Debug route list available at: http://localhost:${PORT}/debug/routes`);
-  console.log(`Router debug page available at: http://localhost:${PORT}/debug/router`);
 });
 
 // Handle server errors
@@ -611,3 +635,5 @@ console.log('Plugin system methods:', Object.getOwnPropertyNames(Object.getProto
     }
   }
 })();
+
+app.use('/', vue_api);
