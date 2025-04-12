@@ -230,7 +230,7 @@ async function main() {
   // Create some sample posts first
   const samplePosts = await Promise.all([
     prisma.posts.create({
-      data: {
+    data: {
         popularity: 1,
         title: "First Blog Post",
         html_content: "This is the content of our first blog post...",
@@ -241,7 +241,7 @@ async function main() {
       }
     }),
     prisma.posts.create({
-      data: {
+    data: {
         popularity: 1,
         title: "Second Blog Post",
         html_content: "This is the content of our second blog post...",
@@ -252,6 +252,148 @@ async function main() {
       }
     })
   ]);
+
+  // Create component templates
+  const templates = [
+    {
+      name: 'Header',
+      content: `
+        <header class="site-header">
+            <nav class="main-nav">
+                <div class="nav-brand">
+                    <a href="/" class="logo">Blog</a>
+                </div>
+                <div class="nav-links">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/blog" class="nav-link">Blog</a>
+                    <a href="/about" class="nav-link">About</a>
+                </div>
+                <div class="nav-search">
+                    <form action="/search" method="GET" class="search-form">
+                        <input type="text" name="q" placeholder="Search posts..." class="search-input">
+                        <button type="submit" class="search-button">Search</button>
+                    </form>
+                </div>
+            </nav>
+        </header>
+        <main class="main-content">
+      `
+    },
+    {
+      name: 'Footer',
+      content: `
+        </main>
+        <footer class="site-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>About Us</h3>
+                    <p>A dynamic blog platform built with modern technologies.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="/">Home</a></li>
+                        <li><a href="/blog">Blog</a></li>
+                        <li><a href="/about">About</a></li>
+                        <li><a href="/contact">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Connect With Us</h3>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="icon-twitter"></i></a>
+                        <a href="#" class="social-link"><i class="icon-facebook"></i></a>
+                        <a href="#" class="social-link"><i class="icon-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="icon-linkedin"></i></a>
+              </div>
+          </div>
+        </div>
+            <div class="footer-bottom">
+                <p>&copy; <%= props.year %> Blog Platform. All rights reserved.</p>
+            </div>
+        </footer>
+      `
+    },
+    {
+      name: 'PostCard',
+      content: `
+        <article class="post-card">
+            <div class="post-header">
+                <h2 class="post-title">
+                    <a href="/blog/<%= post.slug %>"><%= post.title %></a>
+                </h2>
+                <div class="post-meta">
+                    <span class="post-author">
+                        By <%= post.users.first_name %> <%= post.users.last_name %>
+                    </span>
+                    <span class="post-date">
+                        <%= new Date(post.createdAt).toLocaleDateString() %>
+                    </span>
+                </div>
+            </div>
+            <div class="post-content">
+                <p><%= post.html_content %></p>
+            </div>
+            <div class="post-footer">
+                <a href="/blog/<%= post.slug %>" class="read-more">Read More</a>
+                <div class="post-stats">
+                    <span class="comments-count">
+                        <i class="icon-comments"></i>
+                        <%= post.comments_count || 0 %> Comments
+                    </span>
+                    <span class="likes-count">
+                        <i class="icon-heart"></i>
+                        <%= post.likes_count || 0 %> Likes
+                    </span>
+                </div>
+            </div>
+        </article>
+      `
+    },
+    {
+      name: 'Pagination',
+      content: `
+        <div class="pagination">
+            <% if (props.totalPages > 1) { %>
+                <div class="pagination-container">
+                    <% if (props.currentPage > 1) { %>
+                        <a href="<%= props.baseUrl %>?page=<%= props.currentPage - 1 %>" class="pagination-link prev">
+                            &laquo; Previous
+                        </a>
+                    <% } %>
+
+                    <div class="pagination-numbers">
+                        <% for(let i = 1; i <= props.totalPages; i++) { %>
+                            <% if (i === props.currentPage) { %>
+                                <span class="pagination-number active"><%= i %></span>
+                            <% } else { %>
+                                <a href="<%= props.baseUrl %>?page=<%= i %>" class="pagination-number">
+                                    <%= i %>
+                                </a>
+                            <% } %>
+                        <% } %>
+                    </div>
+
+                    <% if (props.currentPage < props.totalPages) { %>
+                        <a href="<%= props.baseUrl %>?page=<%= props.currentPage + 1 %>" class="pagination-link next">
+                            Next &raquo;
+                        </a>
+                    <% } %>
+          </div>
+            <% } %>
+        </div>
+      `
+    }
+  ];
+
+  // Create the templates in the database
+  for (const template of templates) {
+    await prisma.ComponentTemplate.create({
+      data: template
+    });
+  }
+
+  console.log(`Created ${templates.length} component templates`);
 
   // Create pages with the components
   // await prisma.Page.create({

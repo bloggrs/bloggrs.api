@@ -1,22 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useWebSocket } from '../services/websocket';
 import { DynamicComponent } from './DynamicComponent';
 
+interface Post {
+  id: number;
+  slug: string;
+  title: string;
+  html_content: string;
+  users?: {
+    first_name: string;
+    last_name: string;
+  };
+}
+
 interface PageData {
   title: string;
-  component: {
+  component?: {
     content: string;
     name: string;
     props: Record<string, any>;
   };
   props: Record<string, any>;
+  data?: {
+    BlogPostsProvider?: Post[];
+  };
+  content: string;
 }
 
 export function DynamicPage() {
   const location = useLocation();
   const { isConnected, sendMessage, lastMessage } = useWebSocket();
-  const [pageData, setPageData] = useState<any>(null);
+  const [pageData, setPageData] = useState<PageData | null>(null);
   const [parameters, setParameters] = useState({
     page: 1,
     pageSize: 10,
@@ -33,7 +48,6 @@ export function DynamicPage() {
     }
   }, [isConnected, location.pathname, parameters]);
 
-  // Handle incoming messages
   useEffect(() => {
     if (lastMessage?.type === 'pageData') {
       setPageData(lastMessage.data);
@@ -48,35 +62,9 @@ export function DynamicPage() {
     return <div className="loading">Loading page content...</div>;
   }
 
-  // Merge default component props with page-specific props
-  const mergedProps = {
-    ...pageData.component.props,
-    ...pageData.props
-  };
-
   return (
     <div className="dynamic-page">
-      {pageData ? (
-        <div dangerouslySetInnerHTML={{ __html: pageData.content }} />
-      ) : (
-        <div>Loading...</div>
-      )}
-      
-      {/* Pagination controls */}
-      <div className="pagination">
-        <button 
-          onClick={() => setParameters(p => ({ ...p, page: p.page - 1 }))}
-          disabled={parameters.page === 1}
-        >
-          Previous
-        </button>
-        <span>Page {parameters.page}</span>
-        <button 
-          onClick={() => setParameters(p => ({ ...p, page: p.page + 1 }))}
-        >
-          Next
-        </button>
-      </div>
+      <div dangerouslySetInnerHTML={{ __html: pageData.content }} />
     </div>
   );
 } 

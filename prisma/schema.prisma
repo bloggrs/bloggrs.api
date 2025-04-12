@@ -1151,3 +1151,11 @@ model PageDataSource {
 
   @@unique([pageId, providerId])
 }
+
+model ComponentTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // e.g., "Header", "Footer", "PostCard"
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

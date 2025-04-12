@@ -17,6 +17,8 @@ const { findByBlogSlugOr404 } = require("../pages-api/pages-dal");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const dataProviderService = require("../../services/data-provider");
+const Handlebars = require('handlebars');
+const ejs = require('ejs');
 
 // Create HTTP server
 const server = http.createServer(app);
@@ -26,6 +28,20 @@ const wss = new WebSocket.Server({ server });
 
 // Store active connections
 const connections = new Map();
+
+// Register Handlebars helpers
+Handlebars.registerHelper('gt', (a, b) => a > b);
+Handlebars.registerHelper('lt', (a, b) => a < b);
+Handlebars.registerHelper('eq', (a, b) => a === b);
+Handlebars.registerHelper('add', (a, b) => a + b);
+Handlebars.registerHelper('subtract', (a, b) => a - b);
+Handlebars.registerHelper('range', (start, end) => {
+  const range = [];
+  for (let i = start; i <= end; i++) {
+    range.push(i);
+  }
+  return range;
+});
 
 // WebSocket connection handler
 wss.on('connection', (ws, req) => {
@@ -528,21 +544,24 @@ async function handlePageData(ws, apiKey, data) {
     const { path, parameters } = data;
     const { page = 1, pageSize = 10, category = null } = parameters || {};
 
-    // Get the page data with component and data sources
-    const pageData = await prisma.Page.findFirst({
-      where: {
-        path,
-        isPublished: true
-      },
-      include: {
-        component: true,
-        PageDataSource: {
-          include: {
-            provider: true
+    // Get the page data AND all templates from database
+    const [pageData, templates] = await Promise.all([
+      prisma.Page.findFirst({
+        where: {
+          path,
+          isPublished: true
+        },
+        include: {
+          component: true,
+          PageDataSource: {
+            include: {
+              provider: true
+            }
           }
         }
-      }
-    });
+      }),
+      prisma.ComponentTemplate.findMany() // Assuming you have this table
+    ]);
 
     if (!pageData) {
       ws.send(JSON.stringify({
@@ -552,89 +571,85 @@ async function handlePageData(ws, apiKey, data) {
       return;
     }
 
-    // Process data sources and interpret template strings
+    // Create templates map for quick lookup
+    const templatesMap = templates.reduce((acc, template) => {
+      acc[template.name] = template.content;
+      return acc;
+    }, {});
+
+    // Process data sources
     let data2 = {};
     if (pageData.PageDataSource?.length > 0) {
       for (const dataSource of pageData.PageDataSource) {
         const provider = dataSource.provider;
-        
         if (provider.type === 'query') {
-          // Handle database queries based on provider config
           const queryResult = await prisma[provider.config.model].findMany({
             where: provider.config.where,
             select: provider.config.select,
             orderBy: provider.config.orderBy,
             skip: provider.config.pagination ? (page - 1) * pageSize : undefined,
-            take: provider.config.pagination ? pageSize : undefined
+            take: provider.config.pagination ? pageSize : undefined,
           });
-
-          // Process template strings if templatePath exists
-          if (dataSource.templatePath) {
-            data2[provider.name] = queryResult.map(item => {
-              // Replace template strings in content
-              let processedContent = item.html_content;
-              if (typeof processedContent === 'string') {
-                // Replace any template variables
-                processedContent = processedContent.replace(
-                  /{([^}]+)}/g,
-                  (match, key) => item[key.trim()] || match
-                );
-              }
-              return {
-                ...item,
-                html_content: processedContent
-              };
-            });
-          } else {
-            data2[provider.name] = queryResult;
-          }
+          data2[provider.name] = queryResult;
         }
       }
     }
 
-    // Get posts for blog pages
-    let posts = [];
-    if (path === '/blog' || path.startsWith('/blog/')) {
-      posts = await prisma.posts.findMany({
-        where: {
-          isPublished: true,
-          ...(category && {
-            categories: {
-              some: { slug: category }
-            }
-          })
-        },
-        include: {
-          users: {
-            select: {
-              first_name: true,
-              last_name: true
-            }
+    if (pageData.component) {
+      // Replace all EJS includes with actual template content
+      let processableContent = pageData.component.content;
+      
+      // First pass: Replace all includes with actual template content
+      processableContent = processableContent.replace(
+        /<%- include\('client\/components\/(\w+)'\) %>/g,
+        (match, templateName) => {
+          const template = templatesMap[templateName];
+          if (!template) {
+            console.warn(`Template ${templateName} not found in database`);
+            return ''; // Return empty string if template not found
           }
-        },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize
-      });
-    }
+          return template;
+        }
+      );
 
-    // Send the processed page data back to the client
-    ws.send(JSON.stringify({
-      type: 'pageData',
-      data: {
-        title: pageData.title,
-        component: pageData.component ? {
-          content: pageData.component.content,
-          name: pageData.component.name,
-          props: pageData.component.props
-        } : null,
+      // Second pass: Process any nested includes
+      processableContent = processableContent.replace(
+        /<%- include\('client\/components\/(\w+)'[^%]*%>/g,
+        (match, templateName) => {
+          const template = templatesMap[templateName];
+          if (!template) {
+            console.warn(`Template ${templateName} not found in database`);
+            return ''; // Return empty string if template not found
+          }
+          return template;
+        }
+      );
+
+      const templateData = {
         props: {
-          ...pageData.props,
-          posts: posts.length > 0 ? posts : undefined
-        },
-        data: data2
-      }
-    }));
+          title: pageData.title,
+          posts: data2.BlogPostsProvider || [],
+          currentPage: page,
+          totalPages: Math.ceil((data2.BlogPostsProvider?.length || 0) / pageSize),
+          baseUrl: path,
+          year: new Date().getFullYear() // For footer template
+        }
+      };
+
+      // Process the final template with EJS
+      const compiledContent = ejs.render(processableContent, templateData);
+
+      // Send the processed page data back to the client
+      ws.send(JSON.stringify({
+        type: 'pageData',
+        data: {
+          title: pageData.title,
+          content: compiledContent,
+          props: pageData.props,
+          data: data2
+        }
+      }));
+    }
   } catch (error) {
     console.error('Error handling page data:', error);
     ws.send(JSON.stringify({
