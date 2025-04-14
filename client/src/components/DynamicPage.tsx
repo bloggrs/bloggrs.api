@@ -1,70 +1,101 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useWebSocket } from '../services/websocket';
-import { DynamicComponent } from './DynamicComponent';
+import { useLocation, useNavigate } from 'react-router-dom';
+import WebSocketService from '../services/WebSocketService';
 
 interface Post {
   id: number;
-  slug: string;
   title: string;
-  html_content: string;
-  users?: {
-    first_name: string;
-    last_name: string;
-  };
+  content: string;
+  createdAt: string;
+  comments_count: number;
+  likes_count: number;
 }
 
 interface PageData {
+  id: number;
+  path: string;
   title: string;
   component?: {
-    content: string;
     name: string;
+    content: string;
     props: Record<string, any>;
   };
-  props: Record<string, any>;
-  data?: {
-    BlogPostsProvider?: Post[];
-  };
-  content: string;
+  props?: Record<string, any>;
+  posts?: Post[];
 }
 
-export function DynamicPage() {
-  const location = useLocation();
-  const { isConnected, sendMessage, lastMessage } = useWebSocket();
+export default function DynamicPage() {
   const [pageData, setPageData] = useState<PageData | null>(null);
-  const [parameters, setParameters] = useState({
-    page: 1,
-    pageSize: 10,
-    category: null
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (isConnected) {
-      sendMessage({
-        type: 'getPageData',
-        path: location.pathname,
-        parameters
-      });
-    }
-  }, [isConnected, location.pathname, parameters]);
+    const ws = WebSocketService.getInstance();
 
-  useEffect(() => {
-    if (lastMessage?.type === 'pageData') {
-      setPageData(lastMessage.data);
-    }
-  }, [lastMessage]);
+    const handleMessage = (event: MessageEvent) => {
+      const message = JSON.parse(event.data);
 
-  if (!isConnected) {
-    return <div className="loading">Connecting to server...</div>;
-  }
+      if (message.type === 'PAGE_DATA') {
+        setPageData(message.data);
+      } else if (message.type === 'ERROR') {
+        // Handle authentication errors
+        if (message.data.type === 'AUTH_REQUIRED') {
+          // Store the attempted URL to redirect back after login
+          sessionStorage.setItem('redirectAfterLogin', location.pathname);
+          navigate(message.data.redirect);
+        }
+      }
+    };
+
+    ws.addEventListener(handleMessage);
+
+    // Request page data with auth token if available
+    ws.send({
+      type: 'PAGE_REQUEST',
+      path: location.pathname,
+      blogId: 1, // Get this from your config
+      token: localStorage.getItem('authToken') // Include token if available
+    });
+
+    return () => {
+      ws.removeEventListener(handleMessage);
+    };
+  }, [location.pathname, navigate]);
 
   if (!pageData) {
-    return <div className="loading">Loading page content...</div>;
+    return <div>Loading...</div>;
   }
 
-  return (
-    <div className="dynamic-page">
-      <div dangerouslySetInnerHTML={{ __html: pageData.content }} />
-    </div>
-  );
+  // Render the dynamic component if available
+  if (pageData.component) {
+    return (
+      <div className="dynamic-page">
+        <div dangerouslySetInnerHTML={{ __html: pageData.component.content }} />
+      </div>
+    );
+  }
+
+  // Render posts if available
+  if (pageData.posts) {
+    return (
+      <div className="dynamic-page">
+        <div className="posts-container">
+          {pageData.posts.map((post) => (
+            <div key={post.id} className="post-card">
+              <h2>{post.title}</h2>
+              <div className="post-meta">
+                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                <span>{post.comments_count} comments</span>
+                <span>{post.likes_count} likes</span>
+              </div>
+              <div className="post-content">{post.content}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback
+  return <div>No content available</div>;
 } 

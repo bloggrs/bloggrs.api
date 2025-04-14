@@ -183,6 +183,7 @@ model blogs {
   permissions        blogpermissions[]
   temporaryaccesses  temporaryaccesses[]
   medias             medias[]
+  authSettings       AuthSettings?
 
   instances instances[] // Blog can have multiple instances
 
@@ -551,6 +552,7 @@ model users {
   webhooks               webhooks[]
   integrations           integrations[]
   preferences            userpreferences?     @relation("UserPreferences")
+  sessionTokens          SessionToken[]
 
   createdBy Int?
   updatedBy Int?
@@ -1158,4 +1160,27 @@ model ComponentTemplate {
   content   String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AuthSettings {
+  id                Int      @id @default(autoincrement())
+  blogId            Int      @unique
+  requireAuth       Boolean  @default(false)
+  allowGuests       Boolean  @default(true)
+  publicPaths       String   @default("") // Comma-separated paths that don't require authentication
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  blog              blogs    @relation(fields: [blogId], references: [id], onDelete: Cascade)
+}
+
+model SessionToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
 }

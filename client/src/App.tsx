@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useWebSocket } from './services/websocket';
-import { DynamicPage } from './components/DynamicPage';
+import DynamicPage from './components/DynamicPage';
 import './styles/components.css';
+import { AuthProvider } from './context/AuthContext';
 
 interface RouteData {
   path: string;
@@ -40,25 +41,27 @@ export function App() {
   }
 
   return (
-    <BrowserRouter>
-      <div className="app">
-        <Routes>
-          {routes.map((route) => (
-            <Route
-              key={route.path}
-              path={route.path}
-              element={<DynamicPage />}
-            />
-          ))}
-          {!isLoadingRoutes && (
-            <Route 
-              path="*" 
-              element={<div className="error">Page not found</div>} 
-            />
-          )}
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="app">
+          <Routes>
+            {routes.map((route) => (
+              <Route
+                key={route.path}
+                path={route.path}
+                element={<DynamicPage />}
+              />
+            ))}
+            {!isLoadingRoutes && (
+              <Route 
+                path="*" 
+                element={<div className="error">Page not found</div>} 
+              />
+            )}
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

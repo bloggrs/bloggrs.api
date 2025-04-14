@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 interface WebSocketMessage {
   type: string;
@@ -26,17 +26,20 @@ export interface WebSocketHook {
 }
 
 export function useWebSocket(): WebSocketHook {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const sendMessage = useCallback((message: any) => {
-    if (socket && isConnected) {
-      socket.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected, message not sent:', message);
+  const sendMessage = (message: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Add auth token if available
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        message.token = token;
+      }
+      wsRef.current.send(JSON.stringify(message));
     }
-  }, [socket, isConnected]);
+  };
 
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:4000/ws?api_key=test_pk_sdm1ht913vm');
@@ -44,13 +47,13 @@ export function useWebSocket(): WebSocketHook {
     ws.onopen = () => {
       console.log('WebSocket connected');
       setIsConnected(true);
-      setSocket(ws);
+      wsRef.current = ws;
     };
 
     ws.onclose = () => {
       console.log('WebSocket disconnected');
       setIsConnected(false);
-      setSocket(null);
+      wsRef.current = null;
     };
 
     ws.onerror = (error) => {
